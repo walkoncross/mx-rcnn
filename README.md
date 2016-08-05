@@ -25,7 +25,7 @@ and Fast R-CNN. Fast R-CNN weights are used to initiate RPN for training.
   
 ## Show Result
 * official train alternate model
-  ![train alternate](./result.png)
+  ![train alternate](./result.jpg)
 
 ## Training and Testing Faster R-CNN
 * Install additional python package `scipy`.
