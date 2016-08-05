@@ -3,6 +3,8 @@ import os
 import numpy as np
 import cv2
 
+import sys
+sys.path.insert(0, '/home/work/wuwei/project/dmlc/mxnet/python')
 import mxnet as mx
 
 from helper.processing.image_processing import resize, transform
@@ -10,7 +12,7 @@ from helper.processing.nms import nms
 from rcnn.config import config
 from rcnn.detector import Detector
 from rcnn.symbol import get_vgg_test
-from rcnn.tester import vis_all_detection
+from rcnn.tester import vis_all_detection, save_all_detection
 from utils.load_model import load_param
 
 
@@ -29,7 +31,7 @@ CLASSES = ('__background__',
            'sheep', 'sofa', 'train', 'tvmonitor')
 
 
-def demo_net(detector, image_name):
+def demo_net(detector, image_name, vis=False):
     """
     wrapper for detector
     :param detector: Detector
@@ -60,7 +62,10 @@ def demo_net(detector, image_name):
         all_boxes[cls_ind] = dets[keep, :]
 
     boxes_this_image = [[]] + [all_boxes[j] for j in range(1, len(CLASSES))]
-    vis_all_detection(im_array, boxes_this_image, CLASSES, 0)
+    if vis:
+        vis_all_detection(im_array, boxes_this_image, CLASSES, 0)
+    else:
+        save_all_detection(im_array, boxes_this_image, CLASSES, 0)
 
 
 def parse_args():
@@ -77,5 +82,4 @@ if __name__ == '__main__':
     args = parse_args()
     ctx = mx.gpu(args.gpu_id)
     detector = get_net(args.prefix, args.epoch, ctx)
-    demo_net(detector, args.image)
     demo_net(detector, args.image)
