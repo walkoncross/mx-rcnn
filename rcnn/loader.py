@@ -214,7 +214,6 @@ class AnchorLoader(mx.io.DataIter):
                 horz_inds = np.where(horz)[0]
                 vert_inds = np.where(vert)[0]
                 inds = np.hstack((np.random.permutation(horz_inds), np.random.permutation(vert_inds)))
-                import pdb; pdb.set_trace()
                 if inds.shape[0] % 2:
                     inds_ = np.reshape(inds[:-1], (-1, 2))
                     row_perm = np.random.permutation(np.arange(inds_.shape[0]))
