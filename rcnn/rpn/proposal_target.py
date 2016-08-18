@@ -34,7 +34,6 @@ class ProposalTargetOperator(mx.operator.CustomOp):
             self.cfg_key = 'TEST'
 
     def forward(self, is_train, req, in_data, out_data, aux):
-        print("degug 0")
         assert config.TRAIN.RCNN_BATCH_SIZE % config.TRAIN.IMS_PER_BATCH == 0, \
                 'IMAGESPERBATCH {} must devide BATCHSIZE {}'.format(config.TRAIN.IMS_PER_BATCH, config.TRAIN.RCNN_BATCH_SIZE)
         num_images = config.TRAIN.IMS_PER_BATCH  # 1
@@ -44,8 +43,6 @@ class ProposalTargetOperator(mx.operator.CustomOp):
 
         all_rois = in_data[0].asnumpy()
         gt_boxes = in_data[1].asnumpy()
-
-        print("degug 1")
 
         # Include ground-truth boxes in the set of candidate rois
         zeros = np.zeros((gt_boxes.shape[0], 1), dtype=gt_boxes.dtype)
@@ -57,15 +54,11 @@ class ProposalTargetOperator(mx.operator.CustomOp):
         assert np.all(all_rois[:, 0] == 0), \
                 'Only single item batches are supported'
 
-        print("degug 2")
-
         # Sample rois with classification labels and bounding box regression
         # targets
         labels, rois, bbox_targets, bbox_inside_weights = _sample_rois(
             all_rois, gt_boxes, fg_rois_per_image,
             rois_per_image, self._num_classes)
-
-        print("degug 4")
 
         if DEBUG:
             print "labels=", labels
@@ -84,9 +77,6 @@ class ProposalTargetOperator(mx.operator.CustomOp):
         self.assign(out_data[2], req[2], bbox_targets)
         self.assign(out_data[3], req[3], bbox_inside_weights)
         self.assign(out_data[4], req[4], np.array(bbox_inside_weights > 0).astype(np.float32))
-
-        print("degug 5")
-        # import pdb; pdb.set_trace()
 
     def backward(self, req, out_grad, in_data, out_data, in_grad, aux):
         pass
