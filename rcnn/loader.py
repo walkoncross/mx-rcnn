@@ -185,21 +185,29 @@ class AnchorLoader(mx.io.DataIter):
         self.get_batch()
         self.data_name = ['data', 'im_info']
         self.label_name = ['label', 'bbox_target', 'bbox_inside_weight', 'bbox_outside_weight']
+        if config.TRAIN.END2END == 1:
+            self.label_name.append('gt_boxes')
 
     @property
     def provide_data(self):
         if self.mode == 'train':
-            return [('data', self.data[0].shape)]
+            provide_data_ = [('data', self.data[0].shape)]
+            if config.TRAIN.END2END == 1:
+                provide_data_.append(('im_info', self.data[1].shape))
+            return provide_data_
         else:
             return [(k, v.shape) for k, v in self.data.items()]
 
     @property
     def provide_label(self):
         if self.mode == 'train':
-            return [('label', self.label[0].shape),
-                    ('bbox_target', self.label[1].shape),
-                    ('bbox_inside_weight', self.label[2].shape),
-                    ('bbox_outside_weight', self.label[3].shape)]
+            provide_label_ = [('label', self.label[0].shape),
+                              ('bbox_target', self.label[1].shape),
+                              ('bbox_inside_weight', self.label[2].shape),
+                              ('bbox_outside_weight', self.label[3].shape)]
+            if config.TRAIN.END2END == 1:
+                provide_label_.append(('gt_boxes', self.label[4].shape))
+            return provide_label_
         else:
             return [(k, v.shape) for k, v in self.data.items()]
 
@@ -284,21 +292,30 @@ class AnchorLoader(mx.io.DataIter):
                 _, feat_shape, _ = self.feat_sym.infer_shape(**data_shape)
                 feat_shape = [int(i) for i in feat_shape[0]]
 
+                # import pdb; pdb.set_trace()
                 # assign anchor for label
                 label = minibatch.assign_anchor(feat_shape, label['gt_boxes'], data['im_info'],
                                                 self.feat_stride, self.anchor_scales,
                                                 self.anchor_ratios, self.allowed_border)
-                del data['im_info']
+                # import pdb; pdb.set_trace()
+
+                # del data['im_info']
                 new_label_list.append(label)
 
             all_data = dict()
             for key in ['data']:
                 all_data[key] = tensor_vstack([batch[key] for batch in data_list])
+            if config.TRAIN.END2END == 1:
+                for key in ['im_info']:
+                    all_data[key] = tensor_vstack([batch[key] for batch in data_list])
 
             all_label = dict()
             all_label['label'] = tensor_vstack([batch['label'] for batch in new_label_list], pad=-1)
             for key in ['bbox_target', 'bbox_inside_weight', 'bbox_outside_weight']:
                 all_label[key] = tensor_vstack([batch[key] for batch in new_label_list])
+            if config.TRAIN.END2END == 1:
+                for key in ['gt_boxes']:
+                    all_label[key] = tensor_vstack([batch[key] for batch in new_label_list])
 
             self.data = [mx.nd.array(all_data['data'])]
 
@@ -306,3 +323,7 @@ class AnchorLoader(mx.io.DataIter):
                           mx.nd.array(all_label['bbox_target']),
                           mx.nd.array(all_label['bbox_inside_weight']),
                           mx.nd.array(all_label['bbox_outside_weight'])]
+
+            if config.TRAIN.END2END == 1:
+                self.data.append(mx.nd.array(all_data['im_info']))
+                self.label.append(mx.nd.array(all_label['gt_boxes']))

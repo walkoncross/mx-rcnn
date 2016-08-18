@@ -9,7 +9,7 @@ class AccuracyMetric(mx.metric.EvalMetric):
         super(AccuracyMetric, self).__init__('Accuracy')
         self.use_ignore = use_ignore
         self.ignore = ignore
-        self.has_rpn = config.TRAIN.HAS_RPN
+        self.has_rpn = config.TRAIN.HAS_RPN and config.TRAIN.END2END != 1
         if self.has_rpn:
             assert self.use_ignore and self.ignore is not None
 
@@ -21,10 +21,16 @@ class AccuracyMetric(mx.metric.EvalMetric):
             pred_label = pred_label[non_ignore_inds]
             label = label[non_ignore_inds]
         else:
-            last_dim = preds[0].shape[-1]
-            pred_label = preds[0].asnumpy().reshape(-1, last_dim).argmax(axis=1).astype('int32')
-            label = labels[0].asnumpy().reshape(-1,).astype('int32')
+            if config.TRAIN.END2END != 1:
+                last_dim = preds[0].shape[-1]
+                pred_label = preds[0].asnumpy().reshape(-1, last_dim).argmax(axis=1).astype('int32')
+                label = labels[0].asnumpy().reshape(-1,).astype('int32')
+            else:
+                last_dim = preds[3].shape[-1]
+                pred_label = preds[3].asnumpy().reshape(-1, last_dim).argmax(axis=1).astype('int32')
+                label = preds[0].asnumpy().reshape(-1,).astype('int32')
 
+        # import pdb; pdb.set_trace()
         self.sum_metric += (pred_label.flat == label.flat).sum()
         self.num_inst += len(pred_label.flat)
 
@@ -34,7 +40,7 @@ class LogLossMetric(mx.metric.EvalMetric):
         super(LogLossMetric, self).__init__('LogLoss')
         self.use_ignore = use_ignore
         self.ignore = ignore
-        self.has_rpn = config.TRAIN.HAS_RPN
+        self.has_rpn = config.TRAIN.HAS_RPN and config.TRAIN.END2END != 1
         if self.has_rpn:
             assert self.use_ignore and self.ignore is not None
 
@@ -46,10 +52,16 @@ class LogLossMetric(mx.metric.EvalMetric):
             label = label[non_ignore_inds]
             cls = pred_cls[label, non_ignore_inds]
         else:
-            last_dim = preds[0].shape[-1]
-            pred_cls = preds[0].asnumpy().reshape(-1, last_dim)
-            label = labels[0].asnumpy().reshape(-1,).astype('int32')
-            cls = pred_cls[np.arange(label.shape[0]), label]
+            if config.TRAIN.END2END != 1:
+                last_dim = preds[0].shape[-1]
+                pred_cls = preds[0].asnumpy().reshape(-1, last_dim)
+                label = labels[0].asnumpy().reshape(-1,).astype('int32')
+                cls = pred_cls[np.arange(label.shape[0]), label]
+            else:
+                last_dim = preds[3].shape[-1]
+                pred_cls = preds[3].asnumpy().reshape(-1, last_dim)
+                label = preds[0].asnumpy().reshape(-1,).astype('int32')
+                cls = pred_cls[np.arange(label.shape[0]), label]
         cls += config.EPS
         cls_loss = -1 * np.log(cls)
         cls_loss = np.sum(cls_loss)
@@ -60,15 +72,20 @@ class LogLossMetric(mx.metric.EvalMetric):
 class SmoothL1LossMetric(mx.metric.EvalMetric):
     def __init__(self):
         super(SmoothL1LossMetric, self).__init__('SmoothL1Loss')
-        self.has_rpn = config.TRAIN.HAS_RPN
+        self.has_rpn = config.TRAIN.HAS_RPN and config.TRAIN.END2END != 1
 
     def update(self, labels, preds):
         bbox_loss = preds[1].asnumpy()
         if self.has_rpn:
             bbox_loss = bbox_loss.reshape((bbox_loss.shape[0], -1))
         else:
-            first_dim = bbox_loss.shape[0] * bbox_loss.shape[1]
-            bbox_loss = bbox_loss.reshape(first_dim, -1)
+            if config.TRAIN.END2END != 1:
+                first_dim = bbox_loss.shape[0] * bbox_loss.shape[1]
+                bbox_loss = bbox_loss.reshape(first_dim, -1)
+            else:
+                bbox_loss = preds[-1].asnumpy()
+                first_dim = bbox_loss.shape[0] * bbox_loss.shape[1]
+                bbox_loss = bbox_loss.reshape(first_dim, -1)
         self.num_inst += bbox_loss.shape[0]
         bbox_loss = np.sum(bbox_loss)
         self.sum_metric += bbox_loss
