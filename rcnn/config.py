@@ -53,8 +53,6 @@ config.TRAIN.BBOX_NORMALIZATION_PRECOMPUTED = False
 config.TRAIN.BBOX_MEANS = (0.0, 0.0, 0.0, 0.0)
 config.TRAIN.BBOX_STDS = (0.1, 0.1, 0.2, 0.2)
 config.TRAIN.IMS_PER_BATCH = 1
-config.TRAIN.RCNN_BATCH_SIZE = 256
-
 config.TEST = edict()
 
 # R-CNN testing

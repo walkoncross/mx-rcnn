@@ -3,8 +3,7 @@ import logging
 import os
 
 import sys
-# sys.path.insert(0, '/home/work/wuwei/project/dmlc/mxnet/python')
-sys.path.insert(0, '/home/work/wuwei/project/mxnet/python')
+sys.path.insert(0, '/home/work/wuwei/project/dmlc/mxnet/python')
 import mxnet as mx
 
 from rcnn.callback import Speedometer
@@ -14,22 +13,25 @@ from rcnn.metric import AccuracyMetric, LogLossMetric, SmoothL1LossMetric
 from rcnn.module import MutableModule
 from rcnn.symbol import get_faster_rcnn
 from utils.load_data import load_gt_roidb
-from utils.load_model import load_param
+from utils.load_model import load_checkpoint, load_param
+from utils.save_model import save_checkpoint
 
 def end2end_train(image_set, test_image_set, year, root_path, devkit_path, pretrained, epoch, prefix,
                   ctx, begin_epoch, num_epoch, frequent, kv_store, work_load_list=None, resume=False):
     # set up logger
     logger = logging.getLogger()
     logger.setLevel(logging.INFO)
-    config.TRAIN.BG_THRESH_LO = 0.0
+    config.TRAIN.BG_THRESH_HI = 0.6  # 0.5 in py-faster-rcnn, but if set 0.5, there maybe no bg examples in proposals TODO(verify)
+    config.TRAIN.BG_THRESH_LO = 0.0  # 0.1 in py-faster-rcnn, but if set 0.1, there maybe no bg examples in proposals TODO(verify)
+    config.TRAIN.RPN_MIN_SIZE = 5
 
     logging.info('########## TRAIN FASTER-RCNN WITH APPROXIMATE JOINT END2END #############')
     config.TRAIN.HAS_RPN = True
     config.TRAIN.END2END = 1
     # config.TRAIN.IMS_PER_BATCH = 1
-    # config.TRAIN.RCNN_BATCH_SIZE = 256
-    config.TRAIN.BBOX_NORMALIZATION_PRECOMPUTED = False
-    config.TRAIN.BATCH_SIZE = 256
+    # config.TRAIN.RPN_BATCH_SIZE = 256
+    config.TRAIN.BBOX_NORMALIZATION_PRECOMPUTED = True
+    # config.TRAIN.BATCH_SIZE = 1  ## TODO(verify)
     # load symbol
     sym = get_faster_rcnn(is_train=True)
     feat_sym = sym.get_internals()['rpn_cls_score_output']
@@ -44,12 +46,15 @@ def end2end_train(image_set, test_image_set, year, root_path, devkit_path, pretr
     _, feat_shape, _ = feat_sym.infer_shape(**max_data_shape_dict)
     from rcnn.minibatch import assign_anchor
     import numpy as np
-    label = assign_anchor(feat_shape[0], np.zeros((config.TRAIN.BATCH_SIZE, 5)), [[1000, 1000, 1.0]])
+    # import pdb; pdb.set_trace()
+    # label = assign_anchor(feat_shape[0], np.zeros((config.TRAIN.BATCH_SIZE, 5)), [[1000, 1000, 1.0]])
+    label = assign_anchor(feat_shape[0], np.zeros((0, 5)), [[1000, 1000, 1.0]]) # TODO(vertify)
     max_label_shape = [('label', label['label'].shape),
                        ('bbox_target', label['bbox_target'].shape),
                        ('bbox_inside_weight', label['bbox_inside_weight'].shape),
                        ('bbox_outside_weight', label['bbox_outside_weight'].shape),
-                       ('gt_boxes', label['gt_boxes'].shape)]
+                       # ('gt_boxes', label['gt_boxes'].shape)]
+                       ('gt_boxes', (config.TRAIN.RPN_BATCH_SIZE, 5))]
     print 'providing maximum shape', max_data_shape, max_label_shape
 
     # load pretrained
@@ -68,7 +73,7 @@ def end2end_train(image_set, test_image_set, year, root_path, devkit_path, pretr
         args['rpn_conv_3x3_bias'] = mx.nd.zeros(shape=arg_shape_dict['rpn_conv_3x3_bias'])
         args['rpn_cls_score_weight'] = mx.random.normal(0, 0.01, shape=arg_shape_dict['rpn_cls_score_weight'])
         args['rpn_cls_score_bias'] = mx.nd.zeros(shape=arg_shape_dict['rpn_cls_score_bias'])
-        args['rpn_bbox_pred_weight'] = mx.random.normal(0, 0.01, shape=arg_shape_dict['rpn_bbox_pred_weight'])
+        args['rpn_bbox_pred_weight'] = mx.random.normal(0, 0.01, shape=arg_shape_dict['rpn_bbox_pred_weight']) # TODO(change back to 0.01)
         # args['rpn_bbox_pred_weight'] = mx.nd.zeros(shape=arg_shape_dict['rpn_bbox_pred_weight'])
         args['rpn_bbox_pred_bias'] = mx.nd.zeros(shape=arg_shape_dict['rpn_bbox_pred_bias'])
         args['cls_score_weight'] = mx.random.normal(0, 0.01, shape=arg_shape_dict['cls_score_weight'])
@@ -94,7 +99,7 @@ def end2end_train(image_set, test_image_set, year, root_path, devkit_path, pretr
         eval_metrics.add(child_metric)
     optimizer_params = {'momentum': 0.9,
                         'wd': 0.0005, ##  TODO (use proper wd)
-                        'learning_rate': 0.001,   # TODO(use proper lr)
+                        'learning_rate': 0.00000001,   # TODO(use proper lr)
                         'lr_scheduler': mx.lr_scheduler.FactorScheduler(50000, 0.1),
                         'rescale_grad': (1.0 / config.TRAIN.IMS_PER_BATCH)}
 
@@ -103,12 +108,19 @@ def end2end_train(image_set, test_image_set, year, root_path, devkit_path, pretr
                         logger=logger, context=ctx, work_load_list=work_load_list,
                         max_data_shapes=max_data_shape, max_label_shapes=max_label_shape,
                         fixed_param_prefix=fixed_param_prefix)
-    # import pdb; pdb.set_trace()
     mod.fit(train_data, eval_metric=eval_metrics, epoch_end_callback=epoch_end_callback,
             batch_end_callback=batch_end_callback, kvstore=kv_store,
             optimizer='sgd', optimizer_params=optimizer_params,
             arg_params=args, aux_params=auxs, begin_epoch=begin_epoch, num_epoch=num_epoch)
-    import pdb; pdb.set_trace()
+
+    # edit params and save
+    if config.TRAIN.BBOX_NORMALIZATION_PRECOMPUTED:
+        for epoch in range(begin_epoch + 1, num_epoch + 1):
+            arg_params, aux_params = load_checkpoint(prefix, epoch)
+            arg_params['bbox_pred_weight'] = (arg_params['bbox_pred_weight'].T * mx.nd.array(config.TRAIN.BBOX_STDS)).T
+            arg_params['bbox_pred_bias'] = arg_params['bbox_pred_bias'] * mx.nd.array(config.TRAIN.BBOX_STDS) + \
+                                           mx.nd.array(config.TRAIN.BBOX_MEANS)
+            save_checkpoint(prefix, epoch, arg_params, aux_params)
 
 def parse_args():
     parser = argparse.ArgumentParser(description='Train Faster R-CNN Network')

@@ -331,8 +331,8 @@ def get_faster_rcnn(num_classes=21, num_anchors=9, is_train=False):
         data=rpn_cls_score, shape=(0, 2, -1, 0), name="rpn_cls_score_reshape")
 
     # classification
-    rpn_cls_out_prob = mx.symbol.SoftmaxOutput(data=rpn_cls_score_reshape, label=label, multi_output=True,
-                                       normalization='valid', use_ignore=True, ignore_label=-1, name="rpn_cls_prob")
+    rpn_cls_loss = mx.symbol.SoftmaxOutput(data=rpn_cls_score_reshape, label=label, multi_output=True,
+                                       normalization='valid', use_ignore=True, ignore_label=-1, name="rpn_cls_loss")
     # bounding box regression
     rpn_bbox_loss_ = bbox_outside_weight * \
                  mx.symbol.smooth_l1(name='rpn_bbox_loss_', scalar=3.0,
@@ -382,10 +382,10 @@ def get_faster_rcnn(num_classes=21, num_anchors=9, is_train=False):
 
     # group output
     if is_train:
-        group = mx.symbol.Group([rois[1], rpn_cls_out_prob, rpn_bbox_loss, cls_prob, bbox_loss])  # rois[1] is used for evaluation
+        group = mx.symbol.Group([rois[1], rpn_cls_loss, rpn_bbox_loss, cls_prob, bbox_loss])  # rois[1] is used for evaluation
     else:
-        group = mx.symbol.Group([rpn_cls_out_prob, rpn_bbox_loss, cls_prob, bbox_loss])
+        group = mx.symbol.Group([rpn_cls_loss, rpn_bbox_loss, cls_prob, bbox_loss])
     #
-    # group = mx.symbol.Group([rpn_cls_out_prob, rpn_bbox_loss, cls_score])
+    # group = mx.symbol.Group([rpn_cls_loss, rpn_bbox_loss, cls_score])
 
     return group

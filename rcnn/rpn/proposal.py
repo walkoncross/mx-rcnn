@@ -129,6 +129,8 @@ class ProposalOperator(mx.operator.CustomOp):
             keep = keep[:post_nms_topN]
         # pad to ensure output size remains unchanged
         if len(keep) < post_nms_topN:
+            if len(keep) == 0:
+                print "error!, in proposal.py, len(keep) is 0"
             pad = npr.choice(keep, size=post_nms_topN - len(keep))
             keep = np.hstack((keep, pad))
         proposals = proposals[keep, :]
@@ -143,6 +145,7 @@ class ProposalOperator(mx.operator.CustomOp):
 
         if self._output_score:
             self.assign(out_data[1], req[1], scores.astype(np.float32, copy=False))
+
 
     def backward(self, req, out_grad, in_data, out_data, in_grad, aux):
         pass

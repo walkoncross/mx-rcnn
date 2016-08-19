@@ -34,11 +34,11 @@ class ProposalTargetOperator(mx.operator.CustomOp):
             self.cfg_key = 'TEST'
 
     def forward(self, is_train, req, in_data, out_data, aux):
-        assert config.TRAIN.RCNN_BATCH_SIZE % config.TRAIN.IMS_PER_BATCH == 0, \
-                'IMAGESPERBATCH {} must devide BATCHSIZE {}'.format(config.TRAIN.IMS_PER_BATCH, config.TRAIN.RCNN_BATCH_SIZE)
+        assert config.TRAIN.RPN_BATCH_SIZE % config.TRAIN.IMS_PER_BATCH == 0, \
+                'IMAGESPERBATCH {} must devide BATCHSIZE {}'.format(config.TRAIN.IMS_PER_BATCH, config.TRAIN.RPN_BATCH_SIZE)
         num_images = config.TRAIN.IMS_PER_BATCH  # 1
         assert(num_images == 1, "only support signle image")
-        rois_per_image = config.TRAIN.RCNN_BATCH_SIZE / config.TRAIN.IMS_PER_BATCH
+        rois_per_image = config.TRAIN.RPN_BATCH_SIZE / config.TRAIN.IMS_PER_BATCH
         fg_rois_per_image = np.round(config.TRAIN.FG_FRACTION * rois_per_image).astype(int)  # neg : pos=3 : 1
 
         all_rois = in_data[0].asnumpy()
@@ -103,7 +103,7 @@ class ProposalTargetProp(mx.operator.CustomOpProp):
         rpn_roi_shape = in_shape[0]
         gt_boxes_shape = in_shape[1]
 
-        batch_size = config.TRAIN.RCNN_BATCH_SIZE
+        batch_size = config.TRAIN.RPN_BATCH_SIZE
         # ois_per_image = config.TRAIN.BATCH_SIZE / config.TRAIN.BATCH_IMAGES
 
         # output shape
@@ -167,6 +167,16 @@ def _sample_rois(all_rois, gt_boxes, fg_rois_per_image, rois_per_image, num_clas
     # Sample background regions without replacement
     if bg_inds.size > 0:
         bg_inds = npr.choice(bg_inds, size=bg_rois_per_this_image, replace=False)
+
+    if len(bg_inds) == 0:
+        print "error!, in proposal_target.py, len(bg_inds) is 0"
+
+    if len(fg_inds) + len(bg_inds) < rois_per_image:  # should consider when at the beginning of end-to-end training
+        residual = rois_per_image - len(fg_inds) - len(bg_inds)
+        fg_residual = residual // 2
+        bg_residual = residual - fg_residual
+        fg_inds = np.append(fg_inds, npr.choice(fg_inds, size=fg_residual, replace=True))
+        bg_inds = np.append(bg_inds, npr.choice(bg_inds, size=bg_residual, replace=True))
 
     # The indices that we're selecting (both fg and bg)
     keep_inds = np.append(fg_inds, bg_inds)
