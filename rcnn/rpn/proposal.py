@@ -11,6 +11,7 @@ from rcnn.config import config
 from helper.processing.generate_anchor import generate_anchors
 from helper.processing.bbox_transform import bbox_pred, clip_boxes
 from helper.processing.nms import nms
+import logging
 
 DEBUG = False
 
@@ -130,7 +131,7 @@ class ProposalOperator(mx.operator.CustomOp):
         # pad to ensure output size remains unchanged
         if len(keep) < post_nms_topN:
             if len(keep) == 0:
-                print "error!, in proposal.py, len(keep) is 0"
+                logging.log(logging.ERROR, "currently len(keep) is zero")
             pad = npr.choice(keep, size=post_nms_topN - len(keep))
             keep = np.hstack((keep, pad))
         proposals = proposals[keep, :]

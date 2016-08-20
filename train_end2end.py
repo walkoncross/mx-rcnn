@@ -21,9 +21,9 @@ def end2end_train(image_set, test_image_set, year, root_path, devkit_path, pretr
     # set up logger
     logger = logging.getLogger()
     logger.setLevel(logging.INFO)
-    config.TRAIN.BG_THRESH_HI = 0.6  # 0.5 in py-faster-rcnn, but if set 0.5, there maybe no bg examples in proposals TODO(verify)
+    config.TRAIN.BG_THRESH_HI = 0.5  # 0.5 in py-faster-rcnn, but if set 0.5, there maybe no bg examples in proposals TODO(verify)
     config.TRAIN.BG_THRESH_LO = 0.0  # 0.1 in py-faster-rcnn, but if set 0.1, there maybe no bg examples in proposals TODO(verify)
-    config.TRAIN.RPN_MIN_SIZE = 5
+    config.TRAIN.RPN_MIN_SIZE = 16
 
     logging.info('########## TRAIN FASTER-RCNN WITH APPROXIMATE JOINT END2END #############')
     config.TRAIN.HAS_RPN = True
@@ -46,8 +46,6 @@ def end2end_train(image_set, test_image_set, year, root_path, devkit_path, pretr
     _, feat_shape, _ = feat_sym.infer_shape(**max_data_shape_dict)
     from rcnn.minibatch import assign_anchor
     import numpy as np
-    # import pdb; pdb.set_trace()
-    # label = assign_anchor(feat_shape[0], np.zeros((config.TRAIN.BATCH_SIZE, 5)), [[1000, 1000, 1.0]])
     label = assign_anchor(feat_shape[0], np.zeros((0, 5)), [[1000, 1000, 1.0]]) # TODO(vertify)
     max_label_shape = [('label', label['label'].shape),
                        ('bbox_target', label['bbox_target'].shape),
@@ -67,14 +65,12 @@ def end2end_train(image_set, test_image_set, year, root_path, devkit_path, pretr
         input_shapes = {k: v for k, v in train_data.provide_data + train_data.provide_label}
         arg_shape, _, _ = sym.infer_shape(**input_shapes)
         arg_shape_dict = dict(zip(sym.list_arguments(), arg_shape))
-        # import pdb; pdb.set_trace()
 
         args['rpn_conv_3x3_weight'] = mx.random.normal(0, 0.01, shape=arg_shape_dict['rpn_conv_3x3_weight'])
         args['rpn_conv_3x3_bias'] = mx.nd.zeros(shape=arg_shape_dict['rpn_conv_3x3_bias'])
         args['rpn_cls_score_weight'] = mx.random.normal(0, 0.01, shape=arg_shape_dict['rpn_cls_score_weight'])
         args['rpn_cls_score_bias'] = mx.nd.zeros(shape=arg_shape_dict['rpn_cls_score_bias'])
         args['rpn_bbox_pred_weight'] = mx.random.normal(0, 0.01, shape=arg_shape_dict['rpn_bbox_pred_weight']) # TODO(change back to 0.01)
-        # args['rpn_bbox_pred_weight'] = mx.nd.zeros(shape=arg_shape_dict['rpn_bbox_pred_weight'])
         args['rpn_bbox_pred_bias'] = mx.nd.zeros(shape=arg_shape_dict['rpn_bbox_pred_bias'])
         args['cls_score_weight'] = mx.random.normal(0, 0.01, shape=arg_shape_dict['cls_score_weight'])
         args['cls_score_bias'] = mx.nd.zeros(shape=arg_shape_dict['cls_score_bias'])
@@ -99,9 +95,10 @@ def end2end_train(image_set, test_image_set, year, root_path, devkit_path, pretr
         eval_metrics.add(child_metric)
     optimizer_params = {'momentum': 0.9,
                         'wd': 0.0005, ##  TODO (use proper wd)
-                        'learning_rate': 0.00000001,   # TODO(use proper lr)
+                        'learning_rate': 0.001,   # TODO(use proper lr)
                         'lr_scheduler': mx.lr_scheduler.FactorScheduler(50000, 0.1),
-                        'rescale_grad': (1.0 / config.TRAIN.IMS_PER_BATCH)}
+                        'rescale_grad': (1.0 / config.TRAIN.RPN_BATCH_SIZE)}  # TODO (verity)
+                        # 'rescale_grad': (1.0 / config.TRAIN.IMS_PER_BATCH)}
 
     # train
     mod = MutableModule(sym, data_names=data_names, label_names=label_names,

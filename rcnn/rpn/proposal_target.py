@@ -11,6 +11,8 @@ from helper.processing.bbox_regression import bbox_overlaps
 from helper.processing.bbox_regression import expand_bbox_regression_targets
 from helper.processing.bbox_transform import bbox_transform
 from helper.processing.generate_anchor import generate_anchors
+import logging
+
 
 DEBUG = False
 
@@ -169,7 +171,7 @@ def _sample_rois(all_rois, gt_boxes, fg_rois_per_image, rois_per_image, num_clas
         bg_inds = npr.choice(bg_inds, size=bg_rois_per_this_image, replace=False)
 
     if len(bg_inds) == 0:
-        print "error!, in proposal_target.py, len(bg_inds) is 0"
+        logging.log(logging.ERROR, "currently len(bg_inds) is zero")
 
     if len(fg_inds) + len(bg_inds) < rois_per_image:  # should consider when at the beginning of end-to-end training
         residual = rois_per_image - len(fg_inds) - len(bg_inds)
