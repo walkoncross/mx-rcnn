@@ -111,7 +111,6 @@ def get_vgg_rcnn(num_classes=21):
     bbox_loss = mx.sym.MakeLoss(name='bbox_loss', data=bbox_loss_)
 
     # reshape output
-    import pdb; pdb.set_trace()
     cls_prob = mx.symbol.Reshape(data=cls_prob, shape=(config.TRAIN.BATCH_IMAGES, -1, num_classes), name='cls_prob_reshape')
     bbox_loss = mx.symbol.Reshape(data=bbox_loss, shape=(config.TRAIN.BATCH_IMAGES, -1, 4 * num_classes), name='bbox_loss_reshape')
 
@@ -376,7 +375,6 @@ def get_faster_rcnn(num_classes=21, num_anchors=9, is_train=False):
     bbox_loss = mx.sym.MakeLoss(name='bbox_loss', data=bbox_loss_)
 
     # reshape output
-    # import pdb; pdb.set_trace()
     cls_prob = mx.symbol.Reshape(data=cls_prob, shape=(config.TRAIN.IMS_PER_BATCH, -1, num_classes), name='cls_prob_reshape')
     bbox_loss = mx.symbol.Reshape(data=bbox_loss, shape=(config.TRAIN.IMS_PER_BATCH, -1, 4 * num_classes), name='bbox_loss_reshape')
 
@@ -385,7 +383,5 @@ def get_faster_rcnn(num_classes=21, num_anchors=9, is_train=False):
         group = mx.symbol.Group([rois[1], rpn_cls_loss, rpn_bbox_loss, cls_prob, bbox_loss])  # rois[1] is used for evaluation
     else:
         group = mx.symbol.Group([rpn_cls_loss, rpn_bbox_loss, cls_prob, bbox_loss])
-    #
-    # group = mx.symbol.Group([rpn_cls_loss, rpn_bbox_loss, cls_score])
 
     return group

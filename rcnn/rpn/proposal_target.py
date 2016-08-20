@@ -162,6 +162,10 @@ def _sample_rois(all_rois, gt_boxes, fg_rois_per_image, rois_per_image, num_clas
     # Select background RoIs as those within [BG_THRESH_LO, BG_THRESH_HI)
     bg_inds = np.where((max_overlaps < config.TRAIN.BG_THRESH_HI) &
                        (max_overlaps >= config.TRAIN.BG_THRESH_LO))[0]
+
+    if len(bg_inds) == 0:
+        logging.log(logging.ERROR, "currently len(bg_inds) is zero")
+
     # Compute number of background RoIs to take from this image (guarding
     # against there being fewer than desired)
     bg_rois_per_this_image = rois_per_image - fg_rois_per_this_image
@@ -169,9 +173,6 @@ def _sample_rois(all_rois, gt_boxes, fg_rois_per_image, rois_per_image, num_clas
     # Sample background regions without replacement
     if bg_inds.size > 0:
         bg_inds = npr.choice(bg_inds, size=bg_rois_per_this_image, replace=False)
-
-    if len(bg_inds) == 0:
-        logging.log(logging.ERROR, "currently len(bg_inds) is zero")
 
     if len(fg_inds) + len(bg_inds) < rois_per_image:  # should consider when at the beginning of end-to-end training
         residual = rois_per_image - len(fg_inds) - len(bg_inds)

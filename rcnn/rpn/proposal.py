@@ -111,6 +111,7 @@ class ProposalOperator(mx.operator.CustomOp):
         # 3. remove predicted boxes with either height or width < threshold
         # (NOTE: convert min_size to input image scale stored in im_info[2])
         keep = ProposalOperator._filter_boxes(proposals, min_size * im_info[2])
+
         proposals = proposals[keep, :]
         scores = scores[keep]
 
