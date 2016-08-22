@@ -23,7 +23,7 @@ def end2end_train(image_set, test_image_set, year, root_path, devkit_path, pretr
     logger = logging.getLogger()
     logger.setLevel(logging.INFO)
     config.TRAIN.BG_THRESH_HI = 0.5  # TODO(verify)
-    config.TRAIN.BG_THRESH_LO = 0.1  # TODO(verify)
+    config.TRAIN.BG_THRESH_LO = 0.0  # TODO(verify)
     config.TRAIN.RPN_MIN_SIZE = 16
 
     logging.info('########## TRAIN FASTER-RCNN WITH APPROXIMATE JOINT END2END #############')
