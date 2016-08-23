@@ -60,7 +60,7 @@ class ProposalTargetOperator(mx.operator.CustomOp):
         # targets
         labels, rois, bbox_targets, bbox_inside_weights = _sample_rois(
             all_rois, gt_boxes, fg_rois_per_image,
-            rois_per_image, self._num_classes)
+            rois_per_image, self._num_classes, self.cfg_key)
 
         if DEBUG:
             print "labels=", labels
@@ -138,7 +138,7 @@ def _compute_targets(ex_rois, gt_rois, labels):
     return np.hstack(
             (labels[:, np.newaxis], targets)).astype(np.float32, copy=False)
 
-def _sample_rois(all_rois, gt_boxes, fg_rois_per_image, rois_per_image, num_classes):
+def _sample_rois(all_rois, gt_boxes, fg_rois_per_image, rois_per_image, num_classes, key):
     """Generate a random sample of RoIs comprising foreground and background
     examples.
     """
@@ -160,8 +160,13 @@ def _sample_rois(all_rois, gt_boxes, fg_rois_per_image, rois_per_image, num_clas
         fg_inds = npr.choice(fg_inds, size=fg_rois_per_this_image, replace=False)
 
     # Select background RoIs as those within [BG_THRESH_LO, BG_THRESH_HI)
-    bg_inds = np.where((max_overlaps < config.TRAIN.BG_THRESH_HI) &
+    bg_inds_ = np.where((max_overlaps < config.TRAIN.BG_THRESH_HI) &
                        (max_overlaps >= config.TRAIN.BG_THRESH_LO))[0]
+    if len(bg_inds_) == 0 and key == 'TRAIN':
+        bg_inds = np.where((max_overlaps < config.TRAIN.BG_THRESH_HI+0.2) &
+                       (max_overlaps >= config.TRAIN.BG_THRESH_LO))[0]
+    else:
+        bg_inds = bg_inds_
 
     if len(bg_inds) == 0:
         logging.log(logging.ERROR, "currently len(bg_inds) is zero")
