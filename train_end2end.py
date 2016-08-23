@@ -66,8 +66,7 @@ def end2end_train(image_set, test_image_set, year, root_path, devkit_path, pretr
         args['rpn_conv_3x3_bias'] = mx.nd.zeros(shape=arg_shape_dict['rpn_conv_3x3_bias'])
         args['rpn_cls_score_weight'] = mx.random.normal(0, 0.01, shape=arg_shape_dict['rpn_cls_score_weight'])
         args['rpn_cls_score_bias'] = mx.nd.zeros(shape=arg_shape_dict['rpn_cls_score_bias'])
-        args['rpn_bbox_pred_weight'] = mx.random.normal(0, 0.001, shape=arg_shape_dict['rpn_bbox_pred_weight'])
-        # args['rpn_bbox_pred_weight'] = mx.nd.zeros(shape=arg_shape_dict['rpn_bbox_pred_weight'])  # guarantee not likely explode with bbox_delta
+        args['rpn_bbox_pred_weight'] = mx.random.normal(0, 0.001, shape=arg_shape_dict['rpn_bbox_pred_weight'])  # guarantee not likely explode with bbox_delta
         args['rpn_bbox_pred_bias'] = mx.nd.zeros(shape=arg_shape_dict['rpn_bbox_pred_bias'])
         args['cls_score_weight'] = mx.random.normal(0, 0.01, shape=arg_shape_dict['cls_score_weight'])
         args['cls_score_bias'] = mx.nd.zeros(shape=arg_shape_dict['cls_score_bias'])
@@ -92,8 +91,8 @@ def end2end_train(image_set, test_image_set, year, root_path, devkit_path, pretr
     optimizer_params = {'momentum': 0.9,
                         'wd': 0.0005, ##  TODO (use proper wd)
                         'learning_rate': 0.001,   # TODO(use proper lr)
-                        # 'lr_scheduler': WarmupScheduler(50000, 0.1, warmup_lr=1e-4, warmup_step=500),
-                        'lr_scheduler': mx.lr_scheduler.FactorScheduler(50000, 0.1),
+                        'lr_scheduler': WarmupScheduler(50000, 0.1, warmup_lr=1e-4, warmup_step=200),
+                        # 'lr_scheduler': mx.lr_scheduler.FactorScheduler(50000, 0.1),
                         'rescale_grad': (1.0 / config.TRAIN.RPN_BATCH_SIZE)}  # TODO (verity)
     # train
     mod = MutableModule(sym, data_names=data_names, label_names=label_names,
