@@ -54,11 +54,7 @@ def end2end_train(image_set, test_image_set, year, root_path, devkit_path, pretr
                        ('bbox_outside_weight', label['bbox_outside_weight'].shape),
                        ('gt_boxes', (config.TRAIN.RPN_BATCH_SIZE, 5))]
     print 'providing maximum shape', max_data_shape, max_label_shape
-
-    # # setup multi-gpu
-    # config.TRAIN.IMS_PER_BATCH *= len(ctx)
-    # config.TRAIN.RPN_BATCH_SIZE *= len(ctx)
-
+    
     # load training data
     voc, roidb = load_gt_roidb(image_set, year, root_path, devkit_path, flip=use_flip)
     train_data = AnchorLoader(feat_sym, roidb, batch_size=config.TRAIN.IMS_PER_BATCH, shuffle=True, mode='train',
