@@ -37,10 +37,10 @@ def end2end_train(image_set, test_image_set, year, root_path, devkit_path, pretr
     sym = get_faster_rcnn(is_train=True)
     feat_sym = sym.get_internals()['rpn_cls_score_output']
 
-    # load training data
-    voc, roidb = load_gt_roidb(image_set, year, root_path, devkit_path, flip=use_flip)
-    train_data = AnchorLoader(feat_sym, roidb, batch_size=config.TRAIN.IMS_PER_BATCH, shuffle=True, mode='train',
-                              ctx=ctx, work_load_list=work_load_list)
+     # setup multi-gpu
+    config.TRAIN.IMS_PER_BATCH *= len(ctx)
+    config.TRAIN.RPN_BATCH_SIZE *= len(ctx)
+
     # infer max shape
     max_data_shape = [('data', (config.TRAIN.IMS_PER_BATCH, 3, 1000, 1000))]
     max_data_shape_dict = {k: v for k, v in max_data_shape}
@@ -55,6 +55,14 @@ def end2end_train(image_set, test_image_set, year, root_path, devkit_path, pretr
                        ('gt_boxes', (config.TRAIN.RPN_BATCH_SIZE, 5))]
     print 'providing maximum shape', max_data_shape, max_label_shape
 
+    # # setup multi-gpu
+    # config.TRAIN.IMS_PER_BATCH *= len(ctx)
+    # config.TRAIN.RPN_BATCH_SIZE *= len(ctx)
+
+    # load training data
+    voc, roidb = load_gt_roidb(image_set, year, root_path, devkit_path, flip=use_flip)
+    train_data = AnchorLoader(feat_sym, roidb, batch_size=config.TRAIN.IMS_PER_BATCH, shuffle=True, mode='train',
+                              ctx=ctx, work_load_list=work_load_list)
     # load pretrained
     args, auxs = load_param(pretrained, epoch, convert=True)
 
@@ -62,7 +70,7 @@ def end2end_train(image_set, test_image_set, year, root_path, devkit_path, pretr
     if not resume:
         del args['fc8_weight']
         del args['fc8_bias']
-        input_shapes = {k: v for k, v in train_data.provide_data + train_data.provide_label}
+        input_shapes = {k: (1,)+ v[1::] for k, v in train_data.provide_data + train_data.provide_label}
         arg_shape, _, _ = sym.infer_shape(**input_shapes)
         arg_shape_dict = dict(zip(sym.list_arguments(), arg_shape))
 

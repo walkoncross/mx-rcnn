@@ -74,6 +74,7 @@ class ProposalTargetOperator(mx.operator.CustomOp):
             print 'num bg avg: {}'.format(self._bg_num / self._count)
             print 'ratio: {:.3f}'.format(float(self._fg_num) / float(self._bg_num))
 
+        # import pdb; pdb.set_trace()
         self.assign(out_data[0], req[0], rois)
         self.assign(out_data[1], req[1], labels)
         self.assign(out_data[2], req[2], bbox_targets)
@@ -105,9 +106,7 @@ class ProposalTargetProp(mx.operator.CustomOpProp):
         rpn_roi_shape = in_shape[0]
         gt_boxes_shape = in_shape[1]
 
-        batch_size = config.TRAIN.RPN_BATCH_SIZE
-        # ois_per_image = config.TRAIN.BATCH_SIZE / config.TRAIN.BATCH_IMAGES
-
+        batch_size = config.TRAIN.RPN_BATCH_SIZE / config.TRAIN.IMS_PER_BATCH
         # output shape
         roi_shape = (batch_size, 5)  # used for input of roi-pooling
         label_shape = (batch_size, )  # becauseful not set (batch_size, 1)

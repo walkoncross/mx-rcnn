@@ -292,13 +292,10 @@ class AnchorLoader(mx.io.DataIter):
                 _, feat_shape, _ = self.feat_sym.infer_shape(**data_shape)
                 feat_shape = [int(i) for i in feat_shape[0]]
 
-                # import pdb; pdb.set_trace()
                 # assign anchor for label
                 label = minibatch.assign_anchor(feat_shape, label['gt_boxes'], data['im_info'],
                                                 self.feat_stride, self.anchor_scales,
                                                 self.anchor_ratios, self.allowed_border)
-                # import pdb; pdb.set_trace()
-
                 # del data['im_info']
                 new_label_list.append(label)
 
