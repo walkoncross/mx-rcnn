@@ -18,7 +18,8 @@ from utils.save_model import save_checkpoint
 from rcnn.warmup import WarmupScheduler
 
 def end2end_train(image_set, test_image_set, year, root_path, devkit_path, pretrained, epoch, prefix,
-                  ctx, begin_epoch, num_epoch, frequent, kv_store, work_load_list=None, resume=False):
+                  ctx, begin_epoch, num_epoch, frequent, kv_store, work_load_list=None, resume=False,
+                  use_flip=True):
     # set up logger
     logger = logging.getLogger()
     logger.setLevel(logging.INFO)
@@ -34,7 +35,7 @@ def end2end_train(image_set, test_image_set, year, root_path, devkit_path, pretr
     feat_sym = sym.get_internals()['rpn_cls_score_output']
 
     # load training data
-    voc, roidb = load_gt_roidb(image_set, year, root_path, devkit_path, flip=False)
+    voc, roidb = load_gt_roidb(image_set, year, root_path, devkit_path, flip=use_flip)
     train_data = AnchorLoader(feat_sym, roidb, batch_size=config.TRAIN.IMS_PER_BATCH, shuffle=True, mode='train',
                               ctx=ctx, work_load_list=work_load_list)
     # infer max shape
@@ -43,7 +44,7 @@ def end2end_train(image_set, test_image_set, year, root_path, devkit_path, pretr
     _, feat_shape, _ = feat_sym.infer_shape(**max_data_shape_dict)
     from rcnn.minibatch import assign_anchor
     import numpy as np
-    label = assign_anchor(feat_shape[0], np.zeros((0, 5)), [[1000, 1000, 1.0]]) # TODO(vertify)
+    label = assign_anchor(feat_shape[0], np.zeros((0, 5)), [[1000, 1000, 1.0]])
     max_label_shape = [('label', label['label'].shape),
                        ('bbox_target', label['bbox_target'].shape),
                        ('bbox_inside_weight', label['bbox_inside_weight'].shape),
@@ -53,11 +54,11 @@ def end2end_train(image_set, test_image_set, year, root_path, devkit_path, pretr
 
     # load pretrained
     args, auxs = load_param(pretrained, epoch, convert=True)
-    del args['fc8_weight']
-    del args['fc8_bias']
 
     # initialize params
     if not resume:
+        del args['fc8_weight']
+        del args['fc8_bias']
         input_shapes = {k: v for k, v in train_data.provide_data + train_data.provide_label}
         arg_shape, _, _ = sym.infer_shape(**input_shapes)
         arg_shape_dict = dict(zip(sym.list_arguments(), arg_shape))
@@ -121,6 +122,8 @@ def parse_args():
                         default='test', type=str)
     parser.add_argument('--year', dest='year', help='can be 2007, 2010, 2012',
                         default='2007', type=str)
+    parser.add_argument('--no-flip', action='store_true', default=False,
+                        help='if true, then will flip the dataset')
     parser.add_argument('--root_path', dest='root_path', help='output data folder',
                         default=os.path.join(os.getcwd(), 'data'), type=str)
     parser.add_argument('--devkit_path', dest='devkit_path', help='VOCdevkit path',
@@ -143,6 +146,8 @@ def parse_args():
                         default='local', type=str)
     parser.add_argument('--work_load_list', dest='work_load_list', help='work load for different devices',
                         default=None, type=list)
+    parser.add_argument('--resume', action='store_true', default=False,
+                        help='if true, then will retrain the model from rcnn')
     args = parser.parse_args()
     return args
 
@@ -151,4 +156,4 @@ if __name__ == '__main__':
     ctx = [mx.gpu(int(i)) for i in args.gpu_ids.split(',')]
     end2end_train(args.image_set, args.test_image_set, args.year, args.root_path, args.devkit_path,
                   args.pretrained, args.load_epoch, args.prefix, ctx, args.begin_epoch, args.num_epoch,
-                  args.frequent, args.kv_store, args.work_load_list)
+                  args.frequent, args.kv_store, args.work_load_list, args.resume, not args.no_flip)
