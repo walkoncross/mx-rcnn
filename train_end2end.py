@@ -17,6 +17,9 @@ from utils.load_model import load_checkpoint, load_param
 from utils.save_model import save_checkpoint
 from rcnn.warmup import WarmupScheduler
 
+logger = logging.getLogger()
+logger.setLevel(logging.INFO)
+
 def end2end_train(image_set, test_image_set, year, root_path, devkit_path, pretrained, epoch, prefix,
                   ctx, begin_epoch, num_epoch, frequent, kv_store, work_load_list=None, resume=False,
                   use_flip=True):
@@ -143,12 +146,13 @@ def parse_args():
     parser.add_argument('--frequent', dest='frequent', help='frequency of logging',
                         default=20, type=int)
     parser.add_argument('--kv_store', dest='kv_store', help='the kv-store type',
-                        default='local', type=str)
+                        default='device', type=str)
     parser.add_argument('--work_load_list', dest='work_load_list', help='work load for different devices',
                         default=None, type=list)
     parser.add_argument('--resume', action='store_true', default=False,
                         help='if true, then will retrain the model from rcnn')
     args = parser.parse_args()
+    logging.info(args)
     return args
 
 if __name__ == '__main__':
