@@ -21,7 +21,7 @@ logger = logging.getLogger()
 logger.setLevel(logging.INFO)
 
 def end2end_train(image_set, test_image_set, year, root_path, devkit_path, pretrained, epoch, prefix,
-                  ctx, begin_epoch, num_epoch, frequent, kv_store, work_load_list=None, resume=False,
+                  ctx, begin_epoch, num_epoch, frequent, kv_store, mom, wd, lr, work_load_list=None, resume=False,
                   use_flip=True):
     # set up logger
     logger = logging.getLogger()
@@ -54,7 +54,7 @@ def end2end_train(image_set, test_image_set, year, root_path, devkit_path, pretr
                        ('bbox_outside_weight', label['bbox_outside_weight'].shape),
                        ('gt_boxes', (config.TRAIN.RPN_BATCH_SIZE, 5))]
     print 'providing maximum shape', max_data_shape, max_label_shape
-    
+
     # load training data
     voc, roidb = load_gt_roidb(image_set, year, root_path, devkit_path, flip=use_flip)
     train_data = AnchorLoader(feat_sym, roidb, batch_size=config.TRAIN.IMS_PER_BATCH, shuffle=True, mode='train',
@@ -96,12 +96,12 @@ def end2end_train(image_set, test_image_set, year, root_path, devkit_path, pretr
     eval_metrics = mx.metric.CompositeEvalMetric()
     for child_metric in [eval_metric, cls_metric, bbox_metric]:
         eval_metrics.add(child_metric)
-    optimizer_params = {'momentum': 0.9,
-                        'wd': 0.0005, ##  TODO (use proper wd)
-                        'learning_rate': 0.001,   # TODO(use proper lr)
-                        'lr_scheduler': WarmupScheduler(50000, 0.1, warmup_lr=1e-4, warmup_step=200),
-                        # 'lr_scheduler': mx.lr_scheduler.FactorScheduler(50000, 0.1),
-                        'rescale_grad': (1.0 / config.TRAIN.RPN_BATCH_SIZE)}  # TODO (verity)
+    optimizer_params = {'momentum': mom,
+                        'wd': wd,
+                        'learning_rate': lr,
+                        'lr_scheduler': WarmupScheduler(50000, 0.1, warmup_lr=1e-4, warmup_step=200) if not resume \
+                                        else mx.lr_scheduler.FactorScheduler(50000, 0.1),
+                        'rescale_grad': (1.0 / config.TRAIN.RPN_BATCH_SIZE)}
     # train
     mod = MutableModule(sym, data_names=data_names, label_names=label_names,
                         logger=logger, context=ctx, work_load_list=work_load_list,
@@ -153,6 +153,9 @@ def parse_args():
                         default='device', type=str)
     parser.add_argument('--work_load_list', dest='work_load_list', help='work load for different devices',
                         default=None, type=list)
+    parser.add_argument('--lr', type=float, default=0.001, help='initialization learning reate')
+    parser.add_argument('--mom', type=float, default=0.9, help='momentum for sgd')
+    parser.add_argument('--wd', type=float, default=0.0005, help='weight decay for sgd')
     parser.add_argument('--resume', action='store_true', default=False,
                         help='if true, then will retrain the model from rcnn')
     args = parser.parse_args()
@@ -163,5 +166,6 @@ if __name__ == '__main__':
     args = parse_args()
     ctx = [mx.gpu(int(i)) for i in args.gpu_ids.split(',')]
     end2end_train(args.image_set, args.test_image_set, args.year, args.root_path, args.devkit_path,
-                  args.pretrained, args.load_epoch, args.prefix, ctx, args.begin_epoch, args.num_epoch,
-                  args.frequent, args.kv_store, args.work_load_list, args.resume, not args.no_flip)
+                  args.pretrained, args.load_epoch, args.prefix, ctx, args.load_epoch, args.num_epoch,
+                  args.frequent, args.kv_store, args.mom, args.wd, args.lr,
+                  args.work_load_list, args.resume, not args.no_flip)
