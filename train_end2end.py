@@ -21,8 +21,8 @@ logger = logging.getLogger()
 logger.setLevel(logging.INFO)
 
 def end2end_train(image_set, test_image_set, year, root_path, devkit_path, pretrained, epoch, prefix,
-                  ctx, begin_epoch, num_epoch, frequent, kv_store, mom, wd, lr, work_load_list=None, resume=False,
-                  use_flip=True):
+                  ctx, begin_epoch, num_epoch, frequent, kv_store, mom, wd, lr, num_classes,
+                  work_load_list=None, resume=False, use_flip=True):
     # set up logger
     logger = logging.getLogger()
     logger.setLevel(logging.INFO)
@@ -115,16 +115,20 @@ def end2end_train(image_set, test_image_set, year, root_path, devkit_path, pretr
     # edit params and save
     if config.TRAIN.BBOX_NORMALIZATION_PRECOMPUTED:
         for epoch in range(begin_epoch + 1, num_epoch + 1):
+            means = np.tile(np.array(config.TRAIN.BBOX_MEANS), (1, num_classes))
+            stds = np.tile(np.array(config.TRAIN.BBOX_STDS), (1, num_classes))
             arg_params, aux_params = load_checkpoint(prefix, epoch)
-            arg_params['bbox_pred_weight'] = (arg_params['bbox_pred_weight'].T * mx.nd.array(config.TRAIN.BBOX_STDS)).T
-            arg_params['bbox_pred_bias'] = arg_params['bbox_pred_bias'] * mx.nd.array(config.TRAIN.BBOX_STDS) + \
-                                           mx.nd.array(config.TRAIN.BBOX_MEANS)
+            arg_params['bbox_pred_weight'] = (arg_params['bbox_pred_weight'].T * mx.nd.array(stds)).T
+            arg_params['bbox_pred_bias'] = arg_params['bbox_pred_bias'] * mx.nd.array(np.squeeze(stds)) + \
+                                           mx.nd.array(np.squeeze(means))
             save_checkpoint(prefix, epoch, arg_params, aux_params)
 
 def parse_args():
     parser = argparse.ArgumentParser(description='Train Faster R-CNN Network')
     parser.add_argument('--image_set', dest='image_set', help='can be trainval or train',
                         default='trainval', type=str)
+    parser.add_argument('--num-classes', dest='num_classes', help='the class number of dataset',
+                        default=21, type=int)
     parser.add_argument('--test_image_set', dest='test_image_set', help='can be test or val',
                         default='test', type=str)
     parser.add_argument('--year', dest='year', help='can be 2007, 2010, 2012',
@@ -167,5 +171,5 @@ if __name__ == '__main__':
     ctx = [mx.gpu(int(i)) for i in args.gpu_ids.split(',')]
     end2end_train(args.image_set, args.test_image_set, args.year, args.root_path, args.devkit_path,
                   args.pretrained, args.load_epoch, args.prefix, ctx, args.load_epoch, args.num_epoch,
-                  args.frequent, args.kv_store, args.mom, args.wd, args.lr,
+                  args.frequent, args.kv_store, args.mom, args.wd, args.lr, args.num_classes,
                   args.work_load_list, args.resume, not args.no_flip)
