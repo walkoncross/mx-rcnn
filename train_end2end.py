@@ -21,11 +21,12 @@ logger = logging.getLogger()
 logger.setLevel(logging.INFO)
 
 def end2end_train(image_set, test_image_set, year, root_path, devkit_path, pretrained, epoch, prefix,
-                  ctx, begin_epoch, num_epoch, frequent, kv_store, mom, wd, lr, num_classes,
+                  ctx, begin_epoch, num_epoch, frequent, kv_store, mom, wd, lr, num_classes, monitor,
                   work_load_list=None, resume=False, use_flip=True):
     # set up logger
     logger = logging.getLogger()
     logger.setLevel(logging.INFO)
+    mon = None
     config.TRAIN.BG_THRESH_HI = 0.5  # TODO(verify)
     config.TRAIN.BG_THRESH_LO = 0.0  # TODO(verify)
     config.TRAIN.RPN_MIN_SIZE = 16
@@ -99,17 +100,24 @@ def end2end_train(image_set, test_image_set, year, root_path, devkit_path, pretr
     optimizer_params = {'momentum': mom,
                         'wd': wd,
                         'learning_rate': lr,
-                        'lr_scheduler': WarmupScheduler(50000, 0.1, warmup_lr=1e-4, warmup_step=200) if not resume \
+                        'lr_scheduler': WarmupScheduler(50000, 0.1, warmup_lr=5e-5, warmup_step=200) if not resume \
                                         else mx.lr_scheduler.FactorScheduler(50000, 0.1),
+                        'clip_gradient': 1.0,
                         'rescale_grad': (1.0 / config.TRAIN.RPN_BATCH_SIZE)}
     # train
     mod = MutableModule(sym, data_names=data_names, label_names=label_names,
                         logger=logger, context=ctx, work_load_list=work_load_list,
                         max_data_shapes=max_data_shape, max_label_shapes=max_label_shape,
                         fixed_param_prefix=fixed_param_prefix)
+    if monitor:
+        def norm_stat(d):
+            return mx.nd.norm(d)/np.sqrt(d.size)
+        import pdb; pdb.set_trace()
+        mon = mx.mon.Monitor(100, norm_stat)
+
     mod.fit(train_data, eval_metric=eval_metrics, epoch_end_callback=epoch_end_callback,
             batch_end_callback=batch_end_callback, kvstore=kv_store,
-            optimizer='sgd', optimizer_params=optimizer_params,
+            optimizer='sgd', optimizer_params=optimizer_params, monitor=mon,
             arg_params=args, aux_params=auxs, begin_epoch=begin_epoch, num_epoch=num_epoch)
 
     # edit params and save
@@ -157,11 +165,13 @@ def parse_args():
                         default='device', type=str)
     parser.add_argument('--work_load_list', dest='work_load_list', help='work load for different devices',
                         default=None, type=list)
-    parser.add_argument('--lr', type=float, default=0.001, help='initialization learning reate')
+    parser.add_argument('--lr', type=float, default=0.0005, help='initialization learning reate')
     parser.add_argument('--mom', type=float, default=0.9, help='momentum for sgd')
     parser.add_argument('--wd', type=float, default=0.0005, help='weight decay for sgd')
     parser.add_argument('--resume', action='store_true', default=False,
                         help='if true, then will retrain the model from rcnn')
+    parser.add_argument('--monitor', action='store_true', default=False,
+                        help='if true, then will use monitor debug')
     args = parser.parse_args()
     logging.info(args)
     return args
@@ -171,5 +181,5 @@ if __name__ == '__main__':
     ctx = [mx.gpu(int(i)) for i in args.gpu_ids.split(',')]
     end2end_train(args.image_set, args.test_image_set, args.year, args.root_path, args.devkit_path,
                   args.pretrained, args.load_epoch, args.prefix, ctx, args.load_epoch, args.num_epoch,
-                  args.frequent, args.kv_store, args.mom, args.wd, args.lr, args.num_classes,
+                  args.frequent, args.kv_store, args.mom, args.wd, args.lr, args.num_classes, args.monitor,
                   args.work_load_list, args.resume, not args.no_flip)

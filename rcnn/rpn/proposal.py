@@ -56,7 +56,11 @@ class ProposalOperator(mx.operator.CustomOp):
         # the first set of anchors are background probabilities
         # keep the second part
         scores = in_data[0].asnumpy()[:, self._num_anchors:, :, :]
+        if np.isnan(scores).any():
+            raise ValueError("there is nan in input scores")
         bbox_deltas = in_data[1].asnumpy()
+        if np.isnan(bbox_deltas).any():
+            raise ValueError("there is nan in input bbox_deltas")
         im_info = in_data[2].asnumpy()[0, :]
 
         if DEBUG:
