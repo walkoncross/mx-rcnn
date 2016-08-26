@@ -157,7 +157,8 @@ class ProposalOperator(mx.operator.CustomOp):
 
 
     def backward(self, req, out_grad, in_data, out_data, in_grad, aux):
-        pass
+        self.assign(in_grad[0], req[0], 0)
+        self.assign(in_grad[1], req[1], 0)
 
     @staticmethod
     def _filter_boxes(boxes, min_size):

@@ -100,7 +100,7 @@ def end2end_train(image_set, test_image_set, year, root_path, devkit_path, pretr
     optimizer_params = {'momentum': mom,
                         'wd': wd,
                         'learning_rate': lr,
-                        'lr_scheduler': WarmupScheduler(50000, 0.1, warmup_lr=5e-5, warmup_step=200) if not resume \
+                        'lr_scheduler': WarmupScheduler(50000, 0.1, warmup_lr=1e-4, warmup_step=200) if not resume \
                                         else mx.lr_scheduler.FactorScheduler(50000, 0.1),
                         'clip_gradient': 1.0,
                         'rescale_grad': (1.0 / config.TRAIN.RPN_BATCH_SIZE)}
@@ -165,7 +165,7 @@ def parse_args():
                         default='device', type=str)
     parser.add_argument('--work_load_list', dest='work_load_list', help='work load for different devices',
                         default=None, type=list)
-    parser.add_argument('--lr', type=float, default=0.0005, help='initialization learning reate')
+    parser.add_argument('--lr', type=float, default=0.001, help='initialization learning reate')
     parser.add_argument('--mom', type=float, default=0.9, help='momentum for sgd')
     parser.add_argument('--wd', type=float, default=0.0005, help='weight decay for sgd')
     parser.add_argument('--resume', action='store_true', default=False,

@@ -82,7 +82,8 @@ class ProposalTargetOperator(mx.operator.CustomOp):
         self.assign(out_data[4], req[4], np.array(bbox_inside_weights > 0).astype(np.float32))
 
     def backward(self, req, out_grad, in_data, out_data, in_grad, aux):
-        pass
+        self.assign(in_grad[0], req[0], 0)
+        self.assign(in_grad[1], req[1], 0)
 
 @mx.operator.register("proposal_target")
 class ProposalTargetProp(mx.operator.CustomOpProp):

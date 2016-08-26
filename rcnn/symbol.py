@@ -342,6 +342,7 @@ def get_faster_rcnn(num_classes=21, num_anchors=9, is_train=False):
         data=rpn_cls_score_reshape, mode="channel", name="rpn_cls_prob")
     rpn_cls_prob_reshape = mx.symbol.Reshape(
         data=rpn_cls_prob, shape=(0, 2 * num_anchors, -1, 0), name='rpn_cls_prob_reshape')
+
     rpn_roi = mx.symbol.Custom(
         cls_prob=rpn_cls_prob_reshape, bbox_pred=rpn_bbox_pred, im_info=im_info, name='rpn_rois',
         op_type='proposal', feat_stride=16, scales=(8, 16, 32), ratios=(0.5, 1, 2), is_train=is_train)  # TODO(be careful of cls_prob)
