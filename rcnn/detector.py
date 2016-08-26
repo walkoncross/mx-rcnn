@@ -48,7 +48,8 @@ class Detector(object):
 
         # fill in label and aux
         arg_shapes_dict = {name: shape for name, shape in zip(self.symbol.list_arguments(), arg_shapes)}
-        self.arg_params['cls_prob_label'] = mx.nd.zeros(arg_shapes_dict['cls_prob_label'], self.ctx)
+        if not config.END2END:
+            self.arg_params['cls_prob_label'] = mx.nd.zeros(arg_shapes_dict['cls_prob_label'], self.ctx)
         aux_names = self.symbol.list_auxiliary_states()
         self.aux_params = {k: mx.nd.zeros(s, self.ctx) for k, s in zip(aux_names, aux_shapes)}
 
@@ -62,7 +63,10 @@ class Detector(object):
         scores = output_dict['cls_prob_reshape_output'].asnumpy()[0]
         bbox_deltas = output_dict['bbox_pred_reshape_output'].asnumpy()[0]
         if config.TEST.HAS_RPN:
-            rois = output_dict['rois_output'].asnumpy()
+            if not config.END2END:
+                rois = output_dict['rois_output'].asnumpy()
+            else:
+                rois = output_dict['rpn_rois_output'].asnumpy()
             rois = rois[:, 1:].copy()  # scale back
         else:
             rois = roi_array[:, 1:]

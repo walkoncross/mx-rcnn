@@ -33,9 +33,9 @@ def end2end_train(image_set, test_image_set, year, root_path, devkit_path, pretr
 
     logging.info('########## TRAIN FASTER-RCNN WITH APPROXIMATE JOINT END2END #############')
     config.TRAIN.HAS_RPN = True
-    config.TRAIN.END2END = 1
+    config.END2END = 1
     config.TRAIN.BBOX_NORMALIZATION_PRECOMPUTED = True
-    sym = get_faster_rcnn(is_train=True)
+    sym = get_faster_rcnn()
     feat_sym = sym.get_internals()['rpn_cls_score_output']
 
      # setup multi-gpu
@@ -126,6 +126,7 @@ def end2end_train(image_set, test_image_set, year, root_path, devkit_path, pretr
             means = np.tile(np.array(config.TRAIN.BBOX_MEANS), (1, num_classes))
             stds = np.tile(np.array(config.TRAIN.BBOX_STDS), (1, num_classes))
             arg_params, aux_params = load_checkpoint(prefix, epoch)
+            import pdb; pdb.set_trace()
             arg_params['bbox_pred_weight'] = (arg_params['bbox_pred_weight'].T * mx.nd.array(stds)).T
             arg_params['bbox_pred_bias'] = arg_params['bbox_pred_bias'] * mx.nd.array(np.squeeze(stds)) + \
                                            mx.nd.array(np.squeeze(means))

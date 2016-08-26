@@ -185,14 +185,14 @@ class AnchorLoader(mx.io.DataIter):
         self.get_batch()
         self.data_name = ['data', 'im_info']
         self.label_name = ['label', 'bbox_target', 'bbox_inside_weight', 'bbox_outside_weight']
-        if config.TRAIN.END2END == 1:
+        if config.END2END == 1:
             self.label_name.append('gt_boxes')
 
     @property
     def provide_data(self):
         if self.mode == 'train':
             provide_data_ = [('data', self.data[0].shape)]
-            if config.TRAIN.END2END == 1:
+            if config.END2END == 1:
                 provide_data_.append(('im_info', self.data[1].shape))
             return provide_data_
         else:
@@ -205,7 +205,7 @@ class AnchorLoader(mx.io.DataIter):
                               ('bbox_target', self.label[1].shape),
                               ('bbox_inside_weight', self.label[2].shape),
                               ('bbox_outside_weight', self.label[3].shape)]
-            if config.TRAIN.END2END == 1:
+            if config.END2END == 1:
                 provide_label_.append(('gt_boxes', self.label[4].shape))
             return provide_label_
         else:
@@ -302,7 +302,7 @@ class AnchorLoader(mx.io.DataIter):
             all_data = dict()
             for key in ['data']:
                 all_data[key] = tensor_vstack([batch[key] for batch in data_list])
-            if config.TRAIN.END2END == 1:
+            if config.END2END == 1:
                 for key in ['im_info']:
                     all_data[key] = tensor_vstack([batch[key] for batch in data_list])
 
@@ -310,7 +310,7 @@ class AnchorLoader(mx.io.DataIter):
             all_label['label'] = tensor_vstack([batch['label'] for batch in new_label_list], pad=-1)
             for key in ['bbox_target', 'bbox_inside_weight', 'bbox_outside_weight']:
                 all_label[key] = tensor_vstack([batch[key] for batch in new_label_list])
-            if config.TRAIN.END2END == 1:
+            if config.END2END == 1:
                 for key in ['gt_boxes']:
                     all_label[key] = tensor_vstack([batch[key] for batch in new_label_list])
 
@@ -321,6 +321,6 @@ class AnchorLoader(mx.io.DataIter):
                           mx.nd.array(all_label['bbox_inside_weight']),
                           mx.nd.array(all_label['bbox_outside_weight'])]
 
-            if config.TRAIN.END2END == 1:
+            if config.END2END == 1:
                 self.data.append(mx.nd.array(all_data['im_info']))
                 self.label.append(mx.nd.array(all_label['gt_boxes']))

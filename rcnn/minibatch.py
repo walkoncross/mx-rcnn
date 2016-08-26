@@ -389,7 +389,7 @@ def assign_anchor(feat_shape, gt_boxes, im_info, feat_stride=16,
              'bbox_inside_weight': bbox_inside_weights,
              'bbox_outside_weight': bbox_outside_weights}
 
-    if config.TRAIN.END2END == 1:
+    if config.END2END == 1:
         label.update({'gt_boxes': gt_boxes})
 
     return label

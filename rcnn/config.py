@@ -43,7 +43,7 @@ config.TRAIN.RPN_POSITIVE_WEIGHT = -1.0
 
 # used for end2end training
 # RPN proposal
-config.TRAIN.END2END = 0
+config.END2END = 0
 config.TRAIN.RPN_NMS_THRESH = 0.7
 config.TRAIN.RPN_PRE_NMS_TOP_N = 12000
 config.TRAIN.RPN_POST_NMS_TOP_N = 6000

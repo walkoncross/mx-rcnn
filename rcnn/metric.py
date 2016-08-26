@@ -1,3 +1,8 @@
+"""
+if config.END2END = 1, then preds =
+[cls_label, rpn_cls_loss, rpn_bbox_loss, cls_loss, bbox_loss]
+"""
+
 import mxnet as mx
 import numpy as np
 
@@ -9,7 +14,7 @@ class AccuracyMetric(mx.metric.EvalMetric):
         super(AccuracyMetric, self).__init__('Accuracy')
         self.use_ignore = use_ignore
         self.ignore = ignore
-        self.has_rpn = config.TRAIN.HAS_RPN and config.TRAIN.END2END != 1
+        self.has_rpn = config.TRAIN.HAS_RPN and config.END2END != 1
         if self.has_rpn:
             assert self.use_ignore and self.ignore is not None
 
@@ -21,7 +26,7 @@ class AccuracyMetric(mx.metric.EvalMetric):
             pred_label = pred_label[non_ignore_inds]
             label = label[non_ignore_inds]
         else:
-            if config.TRAIN.END2END != 1:
+            if config.END2END != 1:
                 last_dim = preds[0].shape[-1]
                 pred_label = preds[0].asnumpy().reshape(-1, last_dim).argmax(axis=1).astype('int32')
                 label = labels[0].asnumpy().reshape(-1,).astype('int32')
@@ -40,7 +45,7 @@ class LogLossMetric(mx.metric.EvalMetric):
         super(LogLossMetric, self).__init__('LogLoss')
         self.use_ignore = use_ignore
         self.ignore = ignore
-        self.has_rpn = config.TRAIN.HAS_RPN and config.TRAIN.END2END != 1
+        self.has_rpn = config.TRAIN.HAS_RPN and config.END2END != 1
         if self.has_rpn:
             assert self.use_ignore and self.ignore is not None
 
@@ -52,7 +57,7 @@ class LogLossMetric(mx.metric.EvalMetric):
             label = label[non_ignore_inds]
             cls = pred_cls[label, non_ignore_inds]
         else:
-            if config.TRAIN.END2END != 1:
+            if config.END2END != 1:
                 last_dim = preds[0].shape[-1]
                 pred_cls = preds[0].asnumpy().reshape(-1, last_dim)
                 label = labels[0].asnumpy().reshape(-1,).astype('int32')
@@ -72,14 +77,14 @@ class LogLossMetric(mx.metric.EvalMetric):
 class SmoothL1LossMetric(mx.metric.EvalMetric):
     def __init__(self):
         super(SmoothL1LossMetric, self).__init__('SmoothL1Loss')
-        self.has_rpn = config.TRAIN.HAS_RPN and config.TRAIN.END2END != 1
+        self.has_rpn = config.TRAIN.HAS_RPN and config.END2END != 1
 
     def update(self, labels, preds):
         bbox_loss = preds[1].asnumpy()
         if self.has_rpn:
             bbox_loss = bbox_loss.reshape((bbox_loss.shape[0], -1))
         else:
-            if config.TRAIN.END2END != 1:
+            if config.END2END != 1:
                 first_dim = bbox_loss.shape[0] * bbox_loss.shape[1]
                 bbox_loss = bbox_loss.reshape(first_dim, -1)
             else:

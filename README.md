@@ -24,8 +24,8 @@ and Fast R-CNN. Fast R-CNN weights are used to initiate RPN for training.
   Suppose you have downloaded pretrained network and place the extracted file `final-0000.params` in this folder and there is an image named `myimage.jpg`.
   
 ## Show Result
-* official train alternate model
-  ![train alternate](./result.jpg)
+* model with approximate joint end2end training
+  ![train approximate](./result.jpg)
 
 ## Training and Testing Faster R-CNN
 * Install additional python package `scipy`.
