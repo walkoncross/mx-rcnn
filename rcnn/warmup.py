@@ -45,8 +45,11 @@ class WarmupScheduler(LRScheduler):
             self.normal_lr = self.base_lr  # save base_lr, will used after warmup
         elif num_update < self.warmup_step:
             self.base_lr = self.warmup_lr
-        elif num_update == self.warmup_step:
+        elif num_update == self.warmup_step+1:
+            self.warmup_step -= 1  # avoid Repeat logging
             self.base_lr = self.normal_lr
+            logging.info("warmup is over: Change learning rate to %0.5e",
+                         self.base_lr)
         elif num_update > self.warmup_step:
             if num_update - self.warmup_step > self.count + self.step:
                 self.count += self.step

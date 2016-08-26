@@ -32,7 +32,7 @@ def bbox_transform(ex_rois, gt_rois):
     return targets
 
 
-def bbox_pred(boxes, box_deltas):
+def bbox_pred(boxes, box_deltas, is_train=False):
     """
     Transform the set of class-agnostic boxes into class-specific boxes
     by applying the predicted offsets (box_deltas)
@@ -53,14 +53,15 @@ def bbox_pred(boxes, box_deltas):
     dy = box_deltas[:, 1::4]
     dw = box_deltas[:, 2::4]
     dh = box_deltas[:, 3::4]
-    dx = np.array(map(lambda x: np.sign(x)*5 if abs(x) > 5 else x, dx))
-    dy = np.array(map(lambda x: np.sign(x)*5 if abs(x) > 5 else x, dy))
-
+    if is_train:
+        dx = np.array(map(lambda x: np.sign(x)*10 if abs(x) > 10 else x, dx))
+        dy = np.array(map(lambda x: np.sign(x)*10 if abs(x) > 10 else x, dy))
     pred_ctr_x = dx * widths[:, np.newaxis] + ctr_x[:, np.newaxis]
     pred_ctr_y = dy * heights[:, np.newaxis] + ctr_y[:, np.newaxis]
 
-    dw = np.array(map(lambda x: np.sign(x)*5 if abs(x) > 5 else x, dw))
-    dh = np.array(map(lambda x: np.sign(x)*5 if abs(x) > 5 else x, dh))
+    if is_train:
+        dw = np.array(map(lambda x: np.sign(x)*8 if abs(x) > 8 else x, dw))
+        dh = np.array(map(lambda x: np.sign(x)*8 if abs(x) > 8 else x, dh))
     pred_w = np.exp(dw) * widths[:, np.newaxis]
     pred_h = np.exp(dh) * heights[:, np.newaxis]
 

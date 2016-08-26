@@ -170,6 +170,7 @@ def parse_args():
     parser.add_argument('--wd', type=float, default=0.0005, help='weight decay for sgd')
     parser.add_argument('--resume', action='store_true', default=False,
                         help='if true, then will retrain the model from rcnn')
+    parser.add_argument('--factor-step',type=int, default=50000, help='the step used for lr factor')
     parser.add_argument('--monitor', action='store_true', default=False,
                         help='if true, then will use monitor debug')
     args = parser.parse_args()
