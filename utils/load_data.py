@@ -1,4 +1,5 @@
 from helper.dataset.pascal_voc import PascalVOC
+from helper.dataset.detection_list import DetectionList
 from helper.processing.roidb import prepare_roidb, add_bbox_regression_targets
 
 
@@ -15,6 +16,15 @@ def load_ss_roidb(image_set, year, root_path, devkit_path, flip=False):
 
 def load_gt_roidb(image_set, year, root_path, devkit_path, flip=False):
     voc = PascalVOC(image_set, year, root_path, devkit_path)
+    gt_roidb = voc.gt_roidb()
+    if flip:
+        gt_roidb = voc.append_flipped_images(gt_roidb)
+    prepare_roidb(voc, gt_roidb)
+    return voc, gt_roidb
+
+
+def load_gt_roidb_from_list(dataset_name, list_file, dataset_root, outdata_path, flip=False):
+    voc = DetectionList(dataset_name, list_file, dataset_root, outdata_path)
     gt_roidb = voc.gt_roidb()
     if flip:
         gt_roidb = voc.append_flipped_images(gt_roidb)

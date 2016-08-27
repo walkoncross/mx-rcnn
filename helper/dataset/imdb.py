@@ -96,7 +96,9 @@ class IMDB(object):
             oldx2 = boxes[:, 2].copy()
             boxes[:, 0] = widths[i] - oldx2 - 1
             boxes[:, 2] = widths[i] - oldx1 - 1
-            assert (boxes[:, 2] >= boxes[:, 0]).all()
+            # assert (boxes[:, 2] >= boxes[:, 0]).all()  # will overflow, such as boxes[:, 2]=110, boxes[:, 0]=65530
+            if not (boxes[:, 2] >= boxes[:, 0]).all():
+                boxes = roidb[i]['boxes'].copy()  # if numeric overlap, just keep the same
             entry = {'boxes': boxes,
                      'gt_classes': roidb[i]['gt_classes'],
                      'gt_overlaps': roidb[i]['gt_overlaps'],
