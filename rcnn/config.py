@@ -52,6 +52,8 @@ config.TRAIN.RPN_MIN_SIZE = 16
 config.TRAIN.BBOX_NORMALIZATION_PRECOMPUTED = False
 config.TRAIN.BBOX_MEANS = (0.0, 0.0, 0.0, 0.0)
 config.TRAIN.BBOX_STDS = (0.1, 0.1, 0.2, 0.2)
+config.TRAIN.BBOX_MEANS_INV = (0.0, 0.0, 0.0, 0.0)
+config.TRAIN.BBOX_STDS_INV = (10, 10, 20, 20)
 config.TRAIN.IMS_PER_BATCH = 1
 config.TEST = edict()
 

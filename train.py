@@ -13,8 +13,8 @@ from rcnn.metric import AccuracyMetric, LogLossMetric, SmoothL1LossMetric
 from rcnn.module import MutableModule
 from rcnn.symbol import get_faster_rcnn
 from utils.load_data import load_gt_roidb_from_list
-from utils.load_model import load_checkpoint, load_param
-from utils.save_model import save_checkpoint
+from utils.load_model import do_checkpoint, load_param
+# from utils.save_model import save_checkpoint
 from rcnn.warmup import WarmupScheduler
 
 logger = logging.getLogger()
@@ -59,7 +59,7 @@ def main():
                                          args.outdata_path, flip=not args.no_flip)
     train_data = AnchorLoader(feat_sym, roidb, batch_size=config.TRAIN.IMS_PER_BATCH, shuffle=True, mode='train',
                               ctx=ctx)
-    args_params, auxs_params = load_param(args.pretrained, args.load_epoch, convert=True)
+    args_params, auxs_params, _ = load_param(args.pretrained, args.load_epoch, convert=True)
 
     if not args.resume:
         del args_params['fc8_weight']
@@ -87,7 +87,8 @@ def main():
     data_names = [k[0] for k in train_data.provide_data]
     label_names = [k[0] for k in train_data.provide_label]
     batch_end_callback = Speedometer(train_data.batch_size, frequent=args.frequent)
-    epoch_end_callback = mx.callback.do_checkpoint(args.prefix)
+    # epoch_end_callback = mx.callback.do_checkpoint(args.prefix)
+    epoch_end_callback = do_checkpoint(args.prefix)
     eval_metric = AccuracyMetric()
     cls_metric = LogLossMetric()
     bbox_metric = SmoothL1LossMetric()
@@ -111,16 +112,16 @@ def main():
             optimizer='sgd', optimizer_params=optimizer_params, arg_params=args_params, aux_params=auxs_params,
             begin_epoch=args.begin_epoch, num_epoch=args.num_epoch)
 
-    # edit params and save
-    if config.TRAIN.BBOX_NORMALIZATION_PRECOMPUTED:
-        for epoch in range(args.begin_epoch + 1, args.num_epoch + 1):
-            means = np.tile(np.array(config.TRAIN.BBOX_MEANS), (1, args.num_classes))
-            stds = np.tile(np.array(config.TRAIN.BBOX_STDS), (1, args.num_classes))
-            arg_params, aux_params = load_checkpoint(args.prefix, epoch)
-            arg_params['bbox_pred_weight'] = (arg_params['bbox_pred_weight'].T * mx.nd.array(stds)).T
-            arg_params['bbox_pred_bias'] = arg_params['bbox_pred_bias'] * mx.nd.array(np.squeeze(stds)) + \
-                                           mx.nd.array(np.squeeze(means))
-            save_checkpoint(args.prefix, epoch, arg_params, aux_params)
+    # # edit params and save
+    # if config.TRAIN.BBOX_NORMALIZATION_PRECOMPUTED:
+    #     for epoch in range(args.begin_epoch + 1, args.num_epoch + 1):
+    #         means = np.tile(np.array(config.TRAIN.BBOX_MEANS), (1, args.num_classes))
+    #         stds = np.tile(np.array(config.TRAIN.BBOX_STDS), (1, args.num_classes))
+    #         arg_params, aux_params = load_checkpoint(args.prefix, epoch)
+    #         arg_params['bbox_pred_weight'] = (arg_params['bbox_pred_weight'].T * mx.nd.array(stds)).T
+    #         arg_params['bbox_pred_bias'] = arg_params['bbox_pred_bias'] * mx.nd.array(np.squeeze(stds)) + \
+    #                                        mx.nd.array(np.squeeze(means))
+    #         save_checkpoint(args.prefix, epoch, arg_params, aux_params)
 
 if __name__ == '__main__':
     logging.info('############### TRAIN FASTER-RCNN WITH APPROXIMATE JOINT END2END ##################\n'

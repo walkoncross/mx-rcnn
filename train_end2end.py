@@ -13,8 +13,7 @@ from rcnn.metric import AccuracyMetric, LogLossMetric, SmoothL1LossMetric
 from rcnn.module import MutableModule
 from rcnn.symbol import get_faster_rcnn
 from utils.load_data import load_gt_roidb
-from utils.load_model import load_checkpoint, load_param
-from utils.save_model import save_checkpoint
+from utils.load_model import do_checkpoint, load_param
 from rcnn.warmup import WarmupScheduler
 
 logger = logging.getLogger()
@@ -61,7 +60,7 @@ def end2end_train(image_set, test_image_set, year, root_path, devkit_path, pretr
     train_data = AnchorLoader(feat_sym, roidb, batch_size=config.TRAIN.IMS_PER_BATCH, shuffle=True, mode='train',
                               ctx=ctx, work_load_list=work_load_list)
     # load pretrained
-    args, auxs = load_param(pretrained, epoch, convert=True)
+    args, auxs, _ = load_param(pretrained, epoch, convert=True)
 
     # initialize params
     if not resume:
@@ -90,7 +89,7 @@ def end2end_train(image_set, test_image_set, year, root_path, devkit_path, pretr
     data_names = [k[0] for k in train_data.provide_data]
     label_names = [k[0] for k in train_data.provide_label]
     batch_end_callback = Speedometer(train_data.batch_size, frequent=frequent)
-    epoch_end_callback = mx.callback.do_checkpoint(prefix)
+    epoch_end_callback = do_checkpoint(prefix)
     eval_metric = AccuracyMetric()
     cls_metric = LogLossMetric()
     bbox_metric = SmoothL1LossMetric()
@@ -120,16 +119,6 @@ def end2end_train(image_set, test_image_set, year, root_path, devkit_path, pretr
             optimizer='sgd', optimizer_params=optimizer_params, monitor=mon,
             arg_params=args, aux_params=auxs, begin_epoch=begin_epoch, num_epoch=num_epoch)
 
-    # edit params and save
-    if config.TRAIN.BBOX_NORMALIZATION_PRECOMPUTED:
-        for epoch in range(begin_epoch + 1, num_epoch + 1):
-            means = np.tile(np.array(config.TRAIN.BBOX_MEANS), (1, num_classes))
-            stds = np.tile(np.array(config.TRAIN.BBOX_STDS), (1, num_classes))
-            arg_params, aux_params = load_checkpoint(prefix, epoch)
-            arg_params['bbox_pred_weight'] = (arg_params['bbox_pred_weight'].T * mx.nd.array(stds)).T
-            arg_params['bbox_pred_bias'] = arg_params['bbox_pred_bias'] * mx.nd.array(np.squeeze(stds)) + \
-                                           mx.nd.array(np.squeeze(means))
-            save_checkpoint(prefix, epoch, arg_params, aux_params)
 
 def parse_args():
     parser = argparse.ArgumentParser(description='Train Faster R-CNN Network')

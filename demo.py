@@ -17,11 +17,11 @@ from utils.load_model import load_param
 
 
 def get_net(prefix, epoch, ctx):
-    args, auxs = load_param(prefix, epoch, convert=True, ctx=ctx)
+    args, auxs, num_class = load_param(prefix, epoch, convert=True, ctx=ctx)
     if not config.END2END:
-        sym = get_vgg_test()
+        sym = get_vgg_test(num_classes=num_class)
     else:
-        sym = get_faster_rcnn_test()
+        sym = get_faster_rcnn_test(num_classes=num_class)
     detector = Detector(sym, ctx, args, auxs)
     return detector
 
