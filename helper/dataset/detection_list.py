@@ -96,7 +96,7 @@ class DetectionList(IMDB):
         filename = os.path.join(self.dataset_root, self.annos[index][0])
         num_objs = int(self.annos[index][1])
 
-        boxes = np.zeros((num_objs, 4), dtype=np.uint16)
+        boxes = np.zeros((num_objs, 4), dtype=np.int16)  # no uint16 because of the coord which out of range
         gt_classes = np.zeros((num_objs), dtype=np.int32)
         overlaps = np.zeros((num_objs, self.num_classes), dtype=np.float32)
 
@@ -108,6 +108,10 @@ class DetectionList(IMDB):
             y1 = float(y)
             x2 = x1 + float(w) - 1.0
             y2 = y1 + float(h) - 1.0
+            if x2 - x1 <= 0:  # prevent illegal label
+                x2 = x1 + 2
+            if y2 - y1 <= 0:
+                y2 = y1 + 2
             if self.num_classes == 2:
                 cls = 1
             else:

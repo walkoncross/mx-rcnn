@@ -14,7 +14,6 @@ from rcnn.module import MutableModule
 from rcnn.symbol import get_faster_rcnn
 from utils.load_data import load_gt_roidb_from_list
 from utils.load_model import do_checkpoint, load_param
-# from utils.save_model import save_checkpoint
 from rcnn.warmup import WarmupScheduler
 
 logger = logging.getLogger()
@@ -24,7 +23,6 @@ def main():
     # set up logger
     logger = logging.getLogger()
     logger.setLevel(logging.INFO)
-    mon = None
     config.TRAIN.BG_THRESH_HI = 0.5  # TODO(verify)
     config.TRAIN.BG_THRESH_LO = 0.0  # TODO(verify)
     config.TRAIN.RPN_MIN_SIZE = 10
@@ -36,7 +34,7 @@ def main():
     sym = get_faster_rcnn(num_classes=args.num_classes)  # consider background
     feat_sym = sym.get_internals()['rpn_cls_score_output']
 
-     # setup multi-gpu
+    # setup multi-gpu
     ctx = [mx.gpu(int(i)) for i in args.gpu_ids.split(',')]
     config.TRAIN.IMS_PER_BATCH *= len(ctx)
     config.TRAIN.RPN_BATCH_SIZE *= len(ctx)
@@ -87,7 +85,6 @@ def main():
     data_names = [k[0] for k in train_data.provide_data]
     label_names = [k[0] for k in train_data.provide_label]
     batch_end_callback = Speedometer(train_data.batch_size, frequent=args.frequent)
-    # epoch_end_callback = mx.callback.do_checkpoint(args.prefix)
     epoch_end_callback = do_checkpoint(args.prefix)
     eval_metric = AccuracyMetric()
     cls_metric = LogLossMetric()
@@ -111,17 +108,6 @@ def main():
             batch_end_callback=batch_end_callback, kvstore=args.kv_store,
             optimizer='sgd', optimizer_params=optimizer_params, arg_params=args_params, aux_params=auxs_params,
             begin_epoch=args.begin_epoch, num_epoch=args.num_epoch)
-
-    # # edit params and save
-    # if config.TRAIN.BBOX_NORMALIZATION_PRECOMPUTED:
-    #     for epoch in range(args.begin_epoch + 1, args.num_epoch + 1):
-    #         means = np.tile(np.array(config.TRAIN.BBOX_MEANS), (1, args.num_classes))
-    #         stds = np.tile(np.array(config.TRAIN.BBOX_STDS), (1, args.num_classes))
-    #         arg_params, aux_params = load_checkpoint(args.prefix, epoch)
-    #         arg_params['bbox_pred_weight'] = (arg_params['bbox_pred_weight'].T * mx.nd.array(stds)).T
-    #         arg_params['bbox_pred_bias'] = arg_params['bbox_pred_bias'] * mx.nd.array(np.squeeze(stds)) + \
-    #                                        mx.nd.array(np.squeeze(means))
-    #         save_checkpoint(args.prefix, epoch, arg_params, aux_params)
 
 if __name__ == '__main__':
     logging.info('############### TRAIN FASTER-RCNN WITH APPROXIMATE JOINT END2END ##################\n'
