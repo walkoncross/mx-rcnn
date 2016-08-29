@@ -53,7 +53,7 @@ config.TRAIN.BBOX_NORMALIZATION_PRECOMPUTED = False
 config.TRAIN.BBOX_MEANS = (0.0, 0.0, 0.0, 0.0)
 config.TRAIN.BBOX_STDS = (0.1, 0.1, 0.2, 0.2)
 config.TRAIN.BBOX_MEANS_INV = (0.0, 0.0, 0.0, 0.0)
-config.TRAIN.BBOX_STDS_INV = (10.0, 10.0, 20.0, 20.0)
+config.TRAIN.BBOX_STDS_INV = (10.0, 10.0, 5.0, 5.0)
 config.TRAIN.IMS_PER_BATCH = 1
 config.TEST = edict()
 

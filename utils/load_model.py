@@ -41,6 +41,7 @@ def do_checkpoint(prefix):
     """
     def _callback(iter_no, sym, arg, aux):
         if config.TRAIN.BBOX_NORMALIZATION_PRECOMPUTED:
+            print "save model with mean/std"
             num_classes = len(arg['bbox_pred_bias'].asnumpy()) / 4
             means = np.tile(np.array(config.TRAIN.BBOX_MEANS), (1, num_classes))
             stds = np.tile(np.array(config.TRAIN.BBOX_STDS), (1, num_classes))
@@ -76,6 +77,7 @@ def load_param(prefix, epoch, convert=False, ctx=None):
     arg_params, aux_params = load_checkpoint(prefix, epoch)
     num_classes = len(arg_params['bbox_pred_bias'].asnumpy()) / 4
     if config.TRAIN.BBOX_NORMALIZATION_PRECOMPUTED and "bbox_pred_bias" in arg_params.keys():
+        print "lode model with mean/std"
         means = np.tile(np.array(config.TRAIN.BBOX_MEANS_INV), (1, num_classes))
         stds = np.tile(np.array(config.TRAIN.BBOX_STDS_INV), (1, num_classes))
         arg_params['bbox_pred_weight'] = (arg_params['bbox_pred_weight'].T * mx.nd.array(stds)).T
