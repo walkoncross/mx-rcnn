@@ -44,7 +44,7 @@ class DetectionList(IMDB):
 
         self.annos = [x.strip('\n').split(' ') for x in self.f_list.readlines()]
         self.num_images = len(self.annos)  # no need -2
-        self.image_set_index = np.arange(self.num_images)
+        self.image_set_index = range(self.num_images)
         self.f_list.close()
 
     @property

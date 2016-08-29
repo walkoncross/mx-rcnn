@@ -32,8 +32,8 @@ def main():
     logging.info('########## TRAIN FASTER-RCNN WITH APPROXIMATE JOINT END2END #############')
     config.TRAIN.HAS_RPN = True
     config.END2END = 1
-    config.TRAIN.BBOX_NORMALIZATION_PRECOMPUTED = True  
-    sym = get_faster_rcnn()
+    config.TRAIN.BBOX_NORMALIZATION_PRECOMPUTED = True
+    sym = get_faster_rcnn(num_classes=args.num_classes)  # consider background
     feat_sym = sym.get_internals()['rpn_cls_score_output']
 
      # setup multi-gpu
@@ -53,7 +53,7 @@ def main():
                        ('bbox_inside_weight', label['bbox_inside_weight'].shape),
                        ('bbox_outside_weight', label['bbox_outside_weight'].shape),
                        ('gt_boxes', (config.TRAIN.RPN_BATCH_SIZE, 5))]
-    print 'providing maximum shape', max_data_shape, max_label_shape
+    # print 'providing maximum shape', max_data_shape, max_label_shape
 
     voc, roidb = load_gt_roidb_from_list(args.dataset_name, args.lst, args.dataset_root,
                                          args.outdata_path, flip=not args.no_flip)
@@ -97,7 +97,7 @@ def main():
     optimizer_params = {'momentum': args.mom,
                         'wd': args.wd,
                         'learning_rate': args.lr,
-                        'lr_scheduler': WarmupScheduler(args.factor_step, 0.1, warmup_lr=1e-4, warmup_step=200) \
+                        'lr_scheduler': WarmupScheduler(args.factor_step, 0.1, warmup_lr=0.1*args.lr, warmup_step=200) \
                                         if not args.resume else mx.lr_scheduler.FactorScheduler(args.factor_step, 0.1),
                         'clip_gradient': 1.0,
                         'rescale_grad': (1.0 / config.TRAIN.RPN_BATCH_SIZE)}
@@ -130,8 +130,8 @@ if __name__ == '__main__':
     parser.add_argument('--image_set', type=str, default='trainval', help='can be trainval or train')
     parser.add_argument('--test_set', type=str, default='test', help='can be test or val')
     parser.add_argument('--lst', dest='lst', type=str, default='data/trainval.lst', help='the list file of annotation')
-    parser.add_argument('--num-classes', dest='num_classes', help='the class number of detection',
-                        default=1, type=int)
+    parser.add_argument('--num-classes', dest='num_classes', help='the class number of detection, include backgound',
+                        default=2, type=int)
     parser.add_argument('--outdata-path', type=str, default=os.path.join(os.getcwd(), 'data'),
                         help='output data folder')
     parser.add_argument('--dataset-root', type=str, default=os.path.join(os.getcwd(), 'data'),

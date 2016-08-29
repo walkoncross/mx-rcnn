@@ -88,6 +88,7 @@ class IMDB(object):
         print 'append flipped images to roidb'
         import cv2
         assert self.num_images == len(roidb)
+        overlap_cnt = 0
         widths = [cv2.imread(self.image_path_from_index(self.image_set_index[i])).shape[1]
                   for i in range(self.num_images)]
         for i in range(self.num_images):
@@ -98,6 +99,7 @@ class IMDB(object):
             boxes[:, 2] = widths[i] - oldx1 - 1
             # assert (boxes[:, 2] >= boxes[:, 0]).all()  # will overflow, such as boxes[:, 2]=110, boxes[:, 0]=65530
             if not (boxes[:, 2] >= boxes[:, 0]).all():
+                overlap_cnt += 1
                 boxes = roidb[i]['boxes'].copy()  # if numeric overlap, just keep the same
             entry = {'boxes': boxes,
                      'gt_classes': roidb[i]['gt_classes'],
@@ -106,6 +108,7 @@ class IMDB(object):
             roidb.append(entry)
 
         self.image_set_index *= 2
+        print "numeric overlap number is {} when appending flip image".format(overlap_cnt)
         return roidb
 
     def evaluate_recall(self, roidb, candidate_boxes=None, thresholds=None, area='all', limit=None):
