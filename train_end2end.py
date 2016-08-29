@@ -21,7 +21,7 @@ logger.setLevel(logging.INFO)
 
 def end2end_train(image_set, test_image_set, year, root_path, devkit_path, pretrained, epoch, prefix,
                   ctx, begin_epoch, num_epoch, frequent, kv_store, mom, wd, lr, num_classes, monitor,
-                  work_load_list=None, resume=False, use_flip=True):
+                  work_load_list=None, resume=False, use_flip=True, factor_step=50000):
     # set up logger
     logger = logging.getLogger()
     logger.setLevel(logging.INFO)
@@ -34,7 +34,7 @@ def end2end_train(image_set, test_image_set, year, root_path, devkit_path, pretr
     config.TRAIN.HAS_RPN = True
     config.END2END = 1
     config.TRAIN.BBOX_NORMALIZATION_PRECOMPUTED = True
-    sym = get_faster_rcnn()
+    sym = get_faster_rcnn(num_classes=num_classes)
     feat_sym = sym.get_internals()['rpn_cls_score_output']
 
      # setup multi-gpu
@@ -99,8 +99,8 @@ def end2end_train(image_set, test_image_set, year, root_path, devkit_path, pretr
     optimizer_params = {'momentum': mom,
                         'wd': wd,
                         'learning_rate': lr,
-                        'lr_scheduler': WarmupScheduler(50000, 0.1, warmup_lr=1e-4, warmup_step=200) if not resume \
-                                        else mx.lr_scheduler.FactorScheduler(args.factor_step, 0.1),
+                        'lr_scheduler': WarmupScheduler(factor_step, 0.1, warmup_lr=lr*0.1, warmup_step=200) if not resume \
+                                        else mx.lr_scheduler.FactorScheduler(factor_step, 0.1),
                         'clip_gradient': 1.0,
                         'rescale_grad': (1.0 / config.TRAIN.RPN_BATCH_SIZE)}
     # train
@@ -172,4 +172,4 @@ if __name__ == '__main__':
     end2end_train(args.image_set, args.test_image_set, args.year, args.root_path, args.devkit_path,
                   args.pretrained, args.load_epoch, args.prefix, ctx, args.load_epoch, args.num_epoch,
                   args.frequent, args.kv_store, args.mom, args.wd, args.lr, args.num_classes, args.monitor,
-                  args.work_load_list, args.resume, not args.no_flip)
+                  args.work_load_list, args.resume, not args.no_flip, args.factor_step)
