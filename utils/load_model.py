@@ -75,7 +75,8 @@ def load_param(prefix, epoch, convert=False, ctx=None):
     :return: (arg_params, aux_params)
     """
     arg_params, aux_params = load_checkpoint(prefix, epoch)
-    num_classes = len(arg_params['bbox_pred_bias'].asnumpy()) / 4
+    if "bbox_pred_bias" in arg_params.keys():
+        num_classes = len(arg_params['bbox_pred_bias'].asnumpy()) / 4
     if config.TRAIN.BBOX_NORMALIZATION_PRECOMPUTED and "bbox_pred_bias" in arg_params.keys():
         print "lode model with mean/std"
         means = np.tile(np.array(config.TRAIN.BBOX_MEANS_INV), (1, num_classes))
