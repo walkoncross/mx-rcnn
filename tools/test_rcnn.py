@@ -6,16 +6,22 @@ import mxnet as mx
 from rcnn.config import config
 from rcnn.loader import ROIIter
 from rcnn.detector import Detector
-from rcnn.symbol import get_vgg_test, get_vgg_rcnn_test
+from rcnn.symbol import get_vgg_test, get_vgg_rcnn_test, get_faster_rcnn_test
 from rcnn.tester import pred_eval
 from utils.load_data import load_gt_roidb, load_test_ss_roidb, load_test_rpn_roidb
 from utils.load_model import load_param
 
 
-def test_rcnn(imageset, year, root_path, devkit_path, prefix, epoch, ctx, vis=False, has_rpn=True, proposal='rpn'):
+def test_rcnn(imageset, year, root_path, devkit_path, prefix, epoch, ctx, vis=False, has_rpn=True, proposal='rpn',
+              end2end=False):
     # load symbol and testing data
     if has_rpn:
-        sym = get_vgg_test()
+        if end2end:
+            config.END2END = 1
+            config.TEST.HAS_RPN = True
+            sym = get_faster_rcnn_test()
+        else:
+            sym = get_vgg_test()
         config.TEST.HAS_RPN = True
         config.TEST.RPN_PRE_NMS_TOP_N = 6000
         config.TEST.RPN_POST_NMS_TOP_N = 300
@@ -55,11 +61,17 @@ def parse_args():
                         action='store_true')
     parser.add_argument('--proposal', dest='proposal', help='can be ss for selective search or rpn',
                         default='rpn', type=str)
+    parser.add_argument('--end2end', action='store_true', default=False,
+                        help='if true, means the using end2end pretrained model')
     args = parser.parse_args()
     return args
 
 if __name__ == '__main__':
     args = parse_args()
     ctx = mx.gpu(args.gpu_id)
+    if args.end2end:
+
+        args.has_rpn = True
+        import pdb; pdb.set_trace()
     test_rcnn(args.image_set, args.year, args.root_path, args.devkit_path, args.prefix, args.epoch, ctx, args.vis,
               args.has_rpn, args.proposal)
