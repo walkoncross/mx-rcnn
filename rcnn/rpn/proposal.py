@@ -25,13 +25,14 @@ class ProposalOperator(mx.operator.CustomOp):
         self._anchors = generate_anchors(base_size=self._feat_stride, scales=self._scales, ratios=self._ratios)
         self._num_anchors = self._anchors.shape[0]
         self._output_score = output_score
+        self._is_train = True if is_train == 'True' else False
 
         if DEBUG:
             print 'feat_stride: {}'.format(self._feat_stride)
             print 'anchors:'
             print self._anchors
 
-        if is_train:
+        if self._is_train:
             self.cfg_key = 'TRAIN'
         else:
             self.cfg_key = 'TEST'
@@ -176,7 +177,7 @@ class ProposalProp(mx.operator.CustomOpProp):
         self._feat_stride = feat_stride
         self._scales = scales
         self._ratios = ratios
-        self._is_train = is_train
+        self._is_train = True if is_train == 'True' else False
         self._output_score = output_score
 
         if self._is_train:

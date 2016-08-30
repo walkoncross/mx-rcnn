@@ -20,6 +20,7 @@ class ProposalTargetOperator(mx.operator.CustomOp):
     def __init__(self, num_classes, is_train=False):
         super(ProposalTargetOperator, self).__init__()
         self._num_classes = int(num_classes)
+        self._is_train = True if is_train == 'True' else False
 
         if DEBUG:
             self._anchors = generate_anchors()
@@ -30,7 +31,7 @@ class ProposalTargetOperator(mx.operator.CustomOp):
             self._fg_num = 0
             self._bg_num = 0
 
-        if is_train:
+        if self._is_train:
             self.cfg_key = 'TRAIN'
         else:
             self.cfg_key = 'TEST'
@@ -90,7 +91,7 @@ class ProposalTargetProp(mx.operator.CustomOpProp):
     def __init__(self, num_classes, is_train=False):
         super(ProposalTargetProp, self).__init__(need_top_grad=False)
         self._num_classes = int(num_classes)
-        self._is_train = is_train
+        self._is_train = True if is_train == 'True' else False
 
         if self._is_train:
             self.cfg_key = 'TRAIN'
