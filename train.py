@@ -55,8 +55,8 @@ def main():
 
     voc, roidb = load_gt_roidb_from_list(args.dataset_name, args.lst, args.dataset_root,
                                          args.outdata_path, flip=not args.no_flip)
-    train_data = AnchorLoader(feat_sym, roidb, batch_size=config.TRAIN.IMS_PER_BATCH, shuffle=True, mode='train',
-                              ctx=ctx)
+    train_data = AnchorLoader(feat_sym, roidb, batch_size=config.TRAIN.IMS_PER_BATCH, shuffle=not args.no_shuffle,
+                              mode='train', ctx=ctx)
     args_params, auxs_params, _ = load_param(args.pretrained, args.load_epoch, convert=True)
 
     if not args.resume:
@@ -141,6 +141,8 @@ if __name__ == '__main__':
                         default='device', type=str)
     parser.add_argument('--no-flip', action='store_true', default=False,
                         help='if true, then will flip the dataset')
+    parser.add_argument('--no-shuffle', action='store_true', default=False,
+                        help='if true, then will shuffle the dataset')
     parser.add_argument('--lr', type=float, default=0.001, help='initialization learning reate')
     parser.add_argument('--mom', type=float, default=0.9, help='momentum for sgd')
     parser.add_argument('--wd', type=float, default=0.0005, help='weight decay for sgd')

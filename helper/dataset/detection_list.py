@@ -93,8 +93,8 @@ class DetectionList(IMDB):
         :param index: index of a specific image
         :return: record['boxes', 'gt_classes', 'gt_overlaps', 'flipped']
         """
-        filename = os.path.join(self.dataset_root, self.annos[index][0])
         num_objs = int(self.annos[index][1])
+        assert num_objs > 0
 
         boxes = np.zeros((num_objs, 4), dtype=np.int16)  # no uint16 because of the coord which out of range
         gt_classes = np.zeros((num_objs), dtype=np.int32)

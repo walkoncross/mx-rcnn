@@ -18,7 +18,6 @@ def test_rcnn(imageset, year, root_path, devkit_path, prefix, epoch, ctx, vis=Fa
     if has_rpn:
         if end2end:
             config.END2END = 1
-            config.TEST.HAS_RPN = True
             sym = get_faster_rcnn_test()
         else:
             sym = get_vgg_test()
@@ -34,7 +33,7 @@ def test_rcnn(imageset, year, root_path, devkit_path, prefix, epoch, ctx, vis=Fa
     test_data = ROIIter(roidb, batch_size=1, shuffle=False, mode='test')
 
     # load model
-    args, auxs = load_param(prefix, epoch, convert=True, ctx=ctx)
+    args, auxs, _ = load_param(prefix, epoch, convert=True, ctx=ctx)
 
     # detect
     detector = Detector(sym, ctx, args, auxs)
@@ -70,8 +69,6 @@ if __name__ == '__main__':
     args = parse_args()
     ctx = mx.gpu(args.gpu_id)
     if args.end2end:
-
         args.has_rpn = True
-        import pdb; pdb.set_trace()
     test_rcnn(args.image_set, args.year, args.root_path, args.devkit_path, args.prefix, args.epoch, ctx, args.vis,
               args.has_rpn, args.proposal)

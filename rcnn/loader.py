@@ -299,6 +299,8 @@ class AnchorLoader(mx.io.DataIter):
                 # del data['im_info']
                 new_label_list.append(label)
 
+            assert len(label_list) == len(new_label_list),\
+                   "len(label_list)={},len(new_label_list)=".format(len(label_list), len(new_label_list))
             all_data = dict()
             for key in ['data']:
                 all_data[key] = tensor_vstack([batch[key] for batch in data_list])
