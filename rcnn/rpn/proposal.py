@@ -25,14 +25,13 @@ class ProposalOperator(mx.operator.CustomOp):
         self._anchors = generate_anchors(base_size=self._feat_stride, scales=self._scales, ratios=self._ratios)
         self._num_anchors = self._anchors.shape[0]
         self._output_score = output_score
-        self._is_train = True if is_train == 'True' else False
 
         if DEBUG:
             print 'feat_stride: {}'.format(self._feat_stride)
             print 'anchors:'
             print self._anchors
 
-        if self._is_train:
+        if is_train:
             self.cfg_key = 'TRAIN'
         else:
             self.cfg_key = 'TEST'
@@ -48,7 +47,6 @@ class ProposalOperator(mx.operator.CustomOp):
         # apply NMS with threshold 0.7 to remaining proposals
         # take after_nms_topN proposals after NMS
         # return the top proposals (-> RoIs top, scores top)
-
         pre_nms_topN = config[self.cfg_key].RPN_PRE_NMS_TOP_N
         post_nms_topN = config[self.cfg_key].RPN_POST_NMS_TOP_N
         nms_thresh = config[self.cfg_key].RPN_NMS_THRESH
@@ -63,7 +61,6 @@ class ProposalOperator(mx.operator.CustomOp):
         if np.isnan(bbox_deltas).any():
             raise ValueError("there is nan in input bbox_deltas")
         im_info = in_data[2].asnumpy()[0, :]
-
         if DEBUG:
             print 'im_size: ({}, {})'.format(im_info[0], im_info[1])
             print 'scale: {}'.format(im_info[2])
@@ -73,7 +70,6 @@ class ProposalOperator(mx.operator.CustomOp):
 
         if DEBUG:
             print 'score map size: {}'.format(scores.shape)
-
         # Enumerate all shifts
         shift_x = np.arange(0, width) * self._feat_stride
         shift_y = np.arange(0, height) * self._feat_stride
@@ -90,7 +86,6 @@ class ProposalOperator(mx.operator.CustomOp):
         K = shifts.shape[0]
         anchors = self._anchors.reshape((1, A, 4)) + shifts.reshape((1, K, 4)).transpose((1, 0, 2))
         anchors = anchors.reshape((K * A, 4))
-
         # Transpose and reshape predicted bbox transformations to get them
         # into the same order as the anchors:
         #
@@ -113,7 +108,6 @@ class ProposalOperator(mx.operator.CustomOp):
         # 2. clip predicted boxes to image
         proposals_ = clip_boxes(proposals, im_info[:2])
         proposals = proposals if len(proposals_) < 1 and self.cfg_key == 'TRAIN' else proposals_
-
         # 3. remove predicted boxes with either height or width < threshold
         # (NOTE: convert min_size to input image scale stored in im_info[2])
         keep_ = ProposalOperator._filter_boxes(proposals, min_size * im_info[2])
@@ -121,7 +115,6 @@ class ProposalOperator(mx.operator.CustomOp):
 
         proposals = proposals[keep, :]
         scores = scores[keep]
-
         # 4. sort all (proposal, score) pairs by score from highest to lowest
         # 5. take top pre_nms_topN (e.g. 6000)
         order = scores.ravel().argsort()[::-1]
@@ -129,7 +122,6 @@ class ProposalOperator(mx.operator.CustomOp):
             order = order[:pre_nms_topN]
         proposals = proposals[order, :]
         scores = scores[order]
-
         # 6. apply nms (e.g. threshold = 0.7)
         # 7. take after_nms_topN (e.g. 300)
         # 8. return the top proposals (-> RoIs top)
@@ -145,17 +137,14 @@ class ProposalOperator(mx.operator.CustomOp):
             keep = np.hstack((keep, pad))
         proposals = proposals[keep, :]
         scores = scores[keep]
-
         # Output rois array
         # Our RPN implementation only supports a single input image, so all
         # batch inds are 0
         batch_inds = np.zeros((proposals.shape[0], 1), dtype=np.float32)
         blob = np.hstack((batch_inds, proposals.astype(np.float32, copy=False)))
         self.assign(out_data[0], req[0], blob)
-
         if self._output_score:
             self.assign(out_data[1], req[1], scores.astype(np.float32, copy=False))
-
 
     def backward(self, req, out_grad, in_data, out_data, in_grad, aux):
         self.assign(in_grad[0], req[0], 0)

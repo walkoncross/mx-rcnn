@@ -20,7 +20,6 @@ class ProposalTargetOperator(mx.operator.CustomOp):
     def __init__(self, num_classes, is_train=False):
         super(ProposalTargetOperator, self).__init__()
         self._num_classes = int(num_classes)
-        self._is_train = True if is_train == 'True' else False
 
         if DEBUG:
             self._anchors = generate_anchors()
@@ -30,8 +29,7 @@ class ProposalTargetOperator(mx.operator.CustomOp):
             self._count = 0
             self._fg_num = 0
             self._bg_num = 0
-
-        if self._is_train:
+        if is_train:
             self.cfg_key = 'TRAIN'
         else:
             self.cfg_key = 'TEST'
@@ -43,7 +41,6 @@ class ProposalTargetOperator(mx.operator.CustomOp):
         assert(num_images == 1, "only support signle image")
         rois_per_image = config.TRAIN.RPN_BATCH_SIZE / config.TRAIN.IMS_PER_BATCH
         fg_rois_per_image = np.round(config.TRAIN.FG_FRACTION * rois_per_image).astype(int)  # neg : pos=3 : 1
-
         all_rois = in_data[0].asnumpy()
         gt_boxes = in_data[1].asnumpy()
 
@@ -52,7 +49,6 @@ class ProposalTargetOperator(mx.operator.CustomOp):
         all_rois = np.vstack(
             (all_rois, np.hstack((zeros, gt_boxes[:, :-1])))
         )
-
         # Sanity check: single batch only
         assert np.all(all_rois[:, 0] == 0), \
                 'Only single item batches are supported'
@@ -75,7 +71,6 @@ class ProposalTargetOperator(mx.operator.CustomOp):
             print 'num bg avg: {}'.format(self._bg_num / self._count)
             print 'ratio: {:.3f}'.format(float(self._fg_num) / float(self._bg_num))
 
-        # import pdb; pdb.set_trace()
         self.assign(out_data[0], req[0], rois)
         self.assign(out_data[1], req[1], labels)
         self.assign(out_data[2], req[2], bbox_targets)
@@ -92,7 +87,6 @@ class ProposalTargetProp(mx.operator.CustomOpProp):
         super(ProposalTargetProp, self).__init__(need_top_grad=False)
         self._num_classes = int(num_classes)
         self._is_train = True if is_train == 'True' else False
-
         if self._is_train:
             self.cfg_key = 'TRAIN'
         else:
