@@ -102,7 +102,7 @@ class DetectionList(IMDB):
 
         # Load object bounding boxes into a data frame.
         for ix in range(num_objs):
-            x, y, w, h = self.annos[index][2 + ix : 2 + ix + 4]
+            x, y, w, h = self.annos[index][2 + 4*ix : 2 + 4*ix + 4]
             # be careful that pixel indexes should be 0-based
             x1 = float(x)
             y1 = float(y)
