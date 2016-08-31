@@ -144,8 +144,6 @@ def parse_args():
                         default=os.path.join(os.getcwd(), 'model', 'faster-rcnn'), type=str)
     parser.add_argument('--gpus', dest='gpu_ids', help='GPU device to train with',
                         default='0', type=str)
-    parser.add_argument('--begin_epoch', dest='begin_epoch', help='begin epoch of training',
-                        default=0, type=int)
     parser.add_argument('--num_epoch', dest='num_epoch', help='end epoch of faster rcnn end2end training',
                         default=7, type=int)
     parser.add_argument('--frequent', dest='frequent', help='frequency of logging',

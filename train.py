@@ -107,7 +107,7 @@ def main():
     mod.fit(train_data, eval_metric=eval_metrics, epoch_end_callback=epoch_end_callback,
             batch_end_callback=batch_end_callback, kvstore=args.kv_store,
             optimizer='sgd', optimizer_params=optimizer_params, arg_params=args_params, aux_params=auxs_params,
-            begin_epoch=args.begin_epoch, num_epoch=args.num_epoch)
+            begin_epoch=args.load_epoch, num_epoch=args.num_epoch)
 
 if __name__ == '__main__':
     logging.info('############### TRAIN FASTER-RCNN WITH APPROXIMATE JOINT END2END ##################\n'
@@ -131,8 +131,6 @@ if __name__ == '__main__':
                         default=os.path.join(os.getcwd(), 'model', 'faster-rcnn'), type=str)
     parser.add_argument('--gpus', dest='gpu_ids', help='GPU device to train with',
                         default='0', type=str)
-    parser.add_argument('--begin_epoch', dest='begin_epoch', help='begin epoch of training',
-                        default=0, type=int)
     parser.add_argument('--num_epoch', dest='num_epoch', help='end epoch of faster rcnn end2end training',
                         default=7, type=int)
     parser.add_argument('--frequent', dest='frequent', help='frequency of logging',
