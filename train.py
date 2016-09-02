@@ -25,6 +25,8 @@ def main():
     logger.setLevel(logging.INFO)
     config.TRAIN.BG_THRESH_HI = 0.5  # TODO(verify)
     config.TRAIN.BG_THRESH_LO = 0.0  # TODO(verify)
+    config.SCALES = (600, )
+    config.MAX_SIZE = 1000
     config.TRAIN.RPN_MIN_SIZE = 10
 
     logging.info('########## TRAIN FASTER-RCNN WITH APPROXIMATE JOINT END2END #############')
@@ -50,7 +52,7 @@ def main():
                        ('bbox_target', label['bbox_target'].shape),
                        ('bbox_inside_weight', label['bbox_inside_weight'].shape),
                        ('bbox_outside_weight', label['bbox_outside_weight'].shape),
-                       ('gt_boxes', (config.TRAIN.RPN_BATCH_SIZE, 5))]
+                       ('gt_boxes', (config.TRAIN.RPN_BATCH_SIZE, 5*200))]  # assume at most 200 faces in image
     # print 'providing maximum shape', max_data_shape, max_label_shape
 
     voc, roidb = load_gt_roidb_from_list(args.dataset_name, args.lst, args.dataset_root,
@@ -126,7 +128,7 @@ if __name__ == '__main__':
     parser.add_argument('--pretrained', dest='pretrained', help='pretrained model prefix',
                         default=os.path.join(os.getcwd(), 'model', 'vgg16'), type=str)
     parser.add_argument('--load-epoch', dest='load_epoch', help='epoch of pretrained model',
-                        default=1, type=int)
+                        default=0, type=int)
     parser.add_argument('--prefix', dest='prefix', help='new model prefix',
                         default=os.path.join(os.getcwd(), 'model', 'faster-rcnn'), type=str)
     parser.add_argument('--gpus', dest='gpu_ids', help='GPU device to train with',

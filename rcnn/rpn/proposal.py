@@ -106,12 +106,11 @@ class ProposalOperator(mx.operator.CustomOp):
         proposals = bbox_pred(anchors, bbox_deltas)
 
         # 2. clip predicted boxes to image
-        proposals_ = clip_boxes(proposals, im_info[:2])
-        proposals = proposals if len(proposals_) < 1 and self.cfg_key == 'TRAIN' else proposals_
+        proposals = clip_boxes(proposals, im_info[:2])
+
         # 3. remove predicted boxes with either height or width < threshold
         # (NOTE: convert min_size to input image scale stored in im_info[2])
-        keep_ = ProposalOperator._filter_boxes(proposals, min_size * im_info[2])
-        keep = np.arange(0, len(proposals)) if len(keep_) < 1 and self.cfg_key == 'TRAIN' else keep_
+        keep = ProposalOperator._filter_boxes(proposals, min_size * im_info[2])
 
         proposals = proposals[keep, :]
         scores = scores[keep]
@@ -125,8 +124,7 @@ class ProposalOperator(mx.operator.CustomOp):
         # 6. apply nms (e.g. threshold = 0.7)
         # 7. take after_nms_topN (e.g. 300)
         # 8. return the top proposals (-> RoIs top)
-        keep_ = nms(np.hstack((proposals, scores)), nms_thresh)
-        keep = np.arange(0, len(proposals)) if len(keep_) < 1 and self.cfg_key == 'TRAIN' else keep_
+        keep = nms(np.hstack((proposals, scores)), nms_thresh)
         if post_nms_topN > 0:
             keep = keep[:post_nms_topN]
         # pad to ensure output size remains unchanged

@@ -22,10 +22,6 @@ class ProposalTargetOperator(mx.operator.CustomOp):
         self._num_classes = int(num_classes)
 
         if DEBUG:
-            self._anchors = generate_anchors()
-            self._num_anchors = self._anchors.shape[0]
-            print 'anchors:'
-            print self._anchors
             self._count = 0
             self._fg_num = 0
             self._bg_num = 0
@@ -153,6 +149,9 @@ def _sample_rois(all_rois, gt_boxes, fg_rois_per_image, rois_per_image, num_clas
     # Sample foreground regions without replacement
     if fg_inds.size > 0:
         fg_inds = npr.choice(fg_inds, size=fg_rois_per_this_image, replace=False)
+    if fg_inds.size < fg_rois_per_image:
+        fg_inds_ = npr.choice(fg_inds, size=fg_rois_per_image-fg_inds.size, replace=True)
+        fg_inds = np.hstack((fg_inds_, fg_inds))
 
     # Select background RoIs as those within [BG_THRESH_LO, BG_THRESH_HI)
     bg_inds_ = np.where((max_overlaps < config.TRAIN.BG_THRESH_HI) &
@@ -168,18 +167,14 @@ def _sample_rois(all_rois, gt_boxes, fg_rois_per_image, rois_per_image, num_clas
 
     # Compute number of background RoIs to take from this image (guarding
     # against there being fewer than desired)
-    bg_rois_per_this_image = rois_per_image - fg_rois_per_this_image
+    bg_rois_per_this_image = rois_per_image - len(fg_inds)
     bg_rois_per_this_image = min(bg_rois_per_this_image, bg_inds.size)
     # Sample background regions without replacement
     if bg_inds.size > 0:
         bg_inds = npr.choice(bg_inds, size=bg_rois_per_this_image, replace=False)
-
-    if len(fg_inds) + len(bg_inds) < rois_per_image:  # should consider when at the beginning of end-to-end training
-        residual = rois_per_image - len(fg_inds) - len(bg_inds)
-        fg_residual = residual // 2
-        bg_residual = residual - fg_residual
-        fg_inds = np.append(fg_inds, npr.choice(fg_inds, size=fg_residual, replace=True))
-        bg_inds = np.append(bg_inds, npr.choice(bg_inds, size=bg_residual, replace=True))
+    if bg_inds.size < rois_per_image-fg_rois_per_image:
+        bg_inds_ = npr.choice(bg_inds, size=rois_per_image-fg_rois_per_image-bg_inds.size, replace=True)
+        bg_inds = np.hstack((bg_inds_, bg_inds))
 
     # The indices that we're selecting (both fg and bg)
     keep_inds = np.append(fg_inds, bg_inds)

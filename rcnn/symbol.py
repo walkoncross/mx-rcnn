@@ -315,6 +315,8 @@ def get_faster_rcnn(num_classes=21, num_anchors=9):
     bbox_inside_weight = mx.symbol.Variable(name='bbox_inside_weight')
     bbox_outside_weight = mx.symbol.Variable(name='bbox_outside_weight')
 
+    gt_boxes = mx.symbol.Reshape(data=gt_boxes, shape=(-1, 5), name='gt_boxes_reshape')
+
     relu5_3 = get_vgg_conv(data)
 
     ## RPN

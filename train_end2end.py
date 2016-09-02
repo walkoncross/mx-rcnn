@@ -37,7 +37,7 @@ def end2end_train(image_set, test_image_set, year, root_path, devkit_path, pretr
     sym = get_faster_rcnn(num_classes=num_classes)
     feat_sym = sym.get_internals()['rpn_cls_score_output']
 
-     # setup multi-gpu
+    # setup multi-gpu
     config.TRAIN.IMS_PER_BATCH *= len(ctx)
     config.TRAIN.RPN_BATCH_SIZE *= len(ctx)
 
@@ -52,7 +52,7 @@ def end2end_train(image_set, test_image_set, year, root_path, devkit_path, pretr
                        ('bbox_target', label['bbox_target'].shape),
                        ('bbox_inside_weight', label['bbox_inside_weight'].shape),
                        ('bbox_outside_weight', label['bbox_outside_weight'].shape),
-                       ('gt_boxes', (config.TRAIN.RPN_BATCH_SIZE, 5))]
+                       ('gt_boxes', (config.TRAIN.IMS_PER_BATCH, 5*100))]  # assume at most 100 object in image
     print 'providing maximum shape', max_data_shape, max_label_shape
 
     # load training data

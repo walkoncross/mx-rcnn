@@ -36,3 +36,36 @@ def nms(dets, thresh):
         order = order[inds + 1]
 
     return keep
+
+def nest(dets, thresh=0.90):
+    """
+    filter the box when it's the inner of other box
+    :param dets: [[x1, y1, x2, y2 score]]
+    :param thresh: retain overlap < thresh
+    :return: indexes to keep
+    """
+    x1 = dets[:, 0]
+    y1 = dets[:, 1]
+    x2 = dets[:, 2]
+    y2 = dets[:, 3]
+    areas = (x2 - x1 + 1) * (y2 - y1 + 1)
+    # import pdb;pdb.set_trace()
+
+    keep = []
+    for i in range(len(dets)):
+        flag_keep = True
+        for j in range(len(dets)):
+            if j == i: continue
+            xx1 = max(x1[i], x1[j])
+            yy1 = max(y1[i], y1[j])
+            xx2 = min(x2[i], x2[j])
+            yy2 = min(y2[i], y2[j])
+            w = max(0, xx2 - xx1 + 1)
+            h = max(0, yy2 - yy1 + 1)
+            inter = w * h
+            if inter / areas[i] > thresh:
+                flag_keep = False
+        if flag_keep:
+            keep.append(i)
+    return keep
+
