@@ -9,7 +9,7 @@ import numpy.random as npr
 
 from rcnn.config import config
 from helper.processing.generate_anchor import generate_anchors
-from helper.processing.bbox_transform import bbox_pred, clip_boxes
+from helper.processing.bbox_transform import bbox_pred, clip_boxes, clip_pad
 from helper.processing.nms import nms
 import logging
 
@@ -67,9 +67,12 @@ class ProposalOperator(mx.operator.CustomOp):
 
         # 1. Generate proposals from bbox_deltas and shifted anchors
         height, width = scores.shape[-2:]
+        if self.cfg_key == 'TRAIN':
+            height, width = int(im_info[0] / self._feat_stride), int(im_info[1] / self._feat_stride)
 
         if DEBUG:
             print 'score map size: {}'.format(scores.shape)
+            print "resudial = ", scores.shape[2] - height, scores.shape[3] - width
         # Enumerate all shifts
         shift_x = np.arange(0, width) * self._feat_stride
         shift_y = np.arange(0, height) * self._feat_stride
@@ -93,6 +96,7 @@ class ProposalOperator(mx.operator.CustomOp):
         # transpose to (1, H, W, 4 * A)
         # reshape to (1 * H * W * A, 4) where rows are ordered by (h, w, a)
         # in slowest to fastest order
+        bbox_deltas = clip_pad(bbox_deltas, (height, width))
         bbox_deltas = bbox_deltas.transpose((0, 2, 3, 1)).reshape((-1, 4))
 
         # Same story for the scores:

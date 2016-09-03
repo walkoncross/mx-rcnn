@@ -90,11 +90,14 @@ def end2end_train(image_set, test_image_set, year, root_path, devkit_path, pretr
     label_names = [k[0] for k in train_data.provide_label]
     batch_end_callback = Speedometer(train_data.batch_size, frequent=frequent)
     epoch_end_callback = do_checkpoint(prefix)
+    rpn_eval_metric = AccuracyMetric(use_ignore=True, ignore=-1, ex_rpn=True)
+    rpn_cls_metric = LogLossMetric(use_ignore=True, ignore=-1, ex_rpn=True)
+    rpn_bbox_metric = SmoothL1LossMetric(ex_rpn=True)
     eval_metric = AccuracyMetric()
     cls_metric = LogLossMetric()
     bbox_metric = SmoothL1LossMetric()
     eval_metrics = mx.metric.CompositeEvalMetric()
-    for child_metric in [eval_metric, cls_metric, bbox_metric]:
+    for child_metric in [rpn_eval_metric, rpn_cls_metric, rpn_bbox_metric, eval_metric, cls_metric, bbox_metric]:
         eval_metrics.add(child_metric)
     optimizer_params = {'momentum': mom,
                         'wd': wd,
@@ -102,7 +105,8 @@ def end2end_train(image_set, test_image_set, year, root_path, devkit_path, pretr
                         'lr_scheduler': WarmupScheduler(factor_step, 0.1, warmup_lr=lr*0.1, warmup_step=200) if not resume \
                                         else mx.lr_scheduler.FactorScheduler(factor_step, 0.1),
                         'clip_gradient': 1.0,
-                        'rescale_grad': (1.0 / config.TRAIN.RPN_BATCH_SIZE)}
+                        'rescale_grad': 1.0 }
+                        # 'rescale_grad': (1.0 / config.TRAIN.RPN_BATCH_SIZE)}
     # train
     mod = MutableModule(sym, data_names=data_names, label_names=label_names,
                         logger=logger, context=ctx, work_load_list=work_load_list,
@@ -111,7 +115,6 @@ def end2end_train(image_set, test_image_set, year, root_path, devkit_path, pretr
     if monitor:
         def norm_stat(d):
             return mx.nd.norm(d)/np.sqrt(d.size)
-        import pdb; pdb.set_trace()
         mon = mx.mon.Monitor(100, norm_stat)
 
     mod.fit(train_data, eval_metric=eval_metrics, epoch_end_callback=epoch_end_callback,
@@ -139,7 +142,7 @@ def parse_args():
     parser.add_argument('--pretrained', dest='pretrained', help='pretrained model prefix',
                         default=os.path.join(os.getcwd(), 'model', 'vgg16'), type=str)
     parser.add_argument('--load-epoch', dest='load_epoch', help='epoch of pretrained model',
-                        default=1, type=int)
+                        default=0, type=int)
     parser.add_argument('--prefix', dest='prefix', help='new model prefix',
                         default=os.path.join(os.getcwd(), 'model', 'faster-rcnn'), type=str)
     parser.add_argument('--gpus', dest='gpu_ids', help='GPU device to train with',

@@ -369,13 +369,13 @@ def get_faster_rcnn(num_classes=21, num_anchors=9):
     cls_score = mx.symbol.FullyConnected(name='cls_score', data=drop7, num_hidden=num_classes)
 
 
-    cls_prob = mx.symbol.SoftmaxOutput(name='cls_prob', data=cls_score, label=rois[1])
+    cls_prob = mx.symbol.SoftmaxOutput(name='cls_prob', data=cls_score, label=rois[1], normalization='batch')
     # bounding box regression
     bbox_pred = mx.symbol.FullyConnected(name='bbox_pred', data=drop7, num_hidden=num_classes * 4)
     bbox_loss_ = rois[4] * \
                  mx.symbol.smooth_l1(name='bbox_loss_', scalar=1.0,
                                      data=rois[3] * (bbox_pred - rois[2]))
-    bbox_loss = mx.sym.MakeLoss(name='bbox_loss', data=bbox_loss_)
+    bbox_loss = mx.sym.MakeLoss(name='bbox_loss', data=bbox_loss_, grad_scale=1.0 / config.TRAIN.BATCH_SIZE)
 
     # reshape output
     cls_prob = mx.symbol.Reshape(data=cls_prob, shape=(config.TRAIN.IMS_PER_BATCH, -1, num_classes), name='cls_prob_reshape')

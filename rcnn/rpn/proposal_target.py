@@ -39,6 +39,7 @@ class ProposalTargetOperator(mx.operator.CustomOp):
         fg_rois_per_image = np.round(config.TRAIN.FG_FRACTION * rois_per_image).astype(int)  # neg : pos=3 : 1
         all_rois = in_data[0].asnumpy()
         gt_boxes = in_data[1].asnumpy()
+        gt_boxes = gt_boxes[np.where(gt_boxes[:, :5].mean(axis=1) != -1)]
 
         # Include ground-truth boxes in the set of candidate rois
         zeros = np.zeros((gt_boxes.shape[0], 1), dtype=gt_boxes.dtype)

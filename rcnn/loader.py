@@ -315,7 +315,7 @@ class AnchorLoader(mx.io.DataIter):
             if config.END2END == 1:
                 for key in ['gt_boxes']:
                     # should reshape the first dim to 1, because for every device, the batch size should be 1
-                    all_label[key] = tensor_vstack([batch[key].reshape(1, -1) for batch in new_label_list])
+                    all_label[key] = tensor_vstack([batch[key].reshape(1, -1) for batch in new_label_list], pad=-1)
 
             self.data = [mx.nd.array(all_data['data'])]
 

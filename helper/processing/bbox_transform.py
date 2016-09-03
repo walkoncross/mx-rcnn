@@ -94,3 +94,18 @@ def clip_boxes(boxes, im_shape):
     # y2 < im_shape[0]
     boxes[:, 3::4] = np.maximum(np.minimum(boxes[:, 3::4], im_shape[0] - 1), 0)
     return boxes
+
+def clip_pad(boxes, pad_shape):
+    """
+    Clip boxes of the pad area.
+    :param boxes: [n, c, H, W]
+    :param im_shape: [h, w]
+    :return: [n, c, h, w]
+    """
+    H, W = boxes.shape[2:]
+    h, w = pad_shape
+    if h < H:
+        boxes = boxes[:, :, :h, :].copy()
+    if w < W:
+        boxes = boxes[:, :, :, :w].copy()
+    return boxes
