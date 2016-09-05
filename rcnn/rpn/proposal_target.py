@@ -31,11 +31,11 @@ class ProposalTargetOperator(mx.operator.CustomOp):
             self.cfg_key = 'TEST'
 
     def forward(self, is_train, req, in_data, out_data, aux):
-        assert config.TRAIN.RPN_BATCH_SIZE % config.TRAIN.IMS_PER_BATCH == 0, \
-                'IMAGESPERBATCH {} must devide BATCHSIZE {}'.format(config.TRAIN.IMS_PER_BATCH, config.TRAIN.RPN_BATCH_SIZE)
+        assert config.TRAIN.BATCH_SIZE % config.TRAIN.IMS_PER_BATCH == 0, \
+                'IMAGESPERBATCH {} must devide BATCHSIZE {}'.format(config.TRAIN.IMS_PER_BATCH, config.TRAIN.BATCH_SIZE)
         num_images = config.TRAIN.IMS_PER_BATCH  # 1
         assert(num_images == 1, "only support signle image")
-        rois_per_image = config.TRAIN.RPN_BATCH_SIZE / config.TRAIN.IMS_PER_BATCH
+        rois_per_image = config.TRAIN.BATCH_SIZE / config.TRAIN.IMS_PER_BATCH
         fg_rois_per_image = np.round(config.TRAIN.FG_FRACTION * rois_per_image).astype(int)  # neg : pos=3 : 1
         all_rois = in_data[0].asnumpy()
         gt_boxes = in_data[1].asnumpy()
@@ -72,7 +72,7 @@ class ProposalTargetOperator(mx.operator.CustomOp):
         self.assign(out_data[1], req[1], labels)
         self.assign(out_data[2], req[2], bbox_targets)
         self.assign(out_data[3], req[3], bbox_inside_weights)
-        self.assign(out_data[4], req[4], np.array(bbox_inside_weights > 0).astype(np.float32))
+        self.assign(out_data[4], req[4], np.array(bbox_inside_weights > 0).astype(np.float32) ) # no normalization
 
     def backward(self, req, out_grad, in_data, out_data, in_grad, aux):
         self.assign(in_grad[0], req[0], 0)
@@ -99,7 +99,7 @@ class ProposalTargetProp(mx.operator.CustomOpProp):
         rpn_roi_shape = in_shape[0]
         gt_boxes_shape = in_shape[1]
 
-        batch_size = config.TRAIN.RPN_BATCH_SIZE / config.TRAIN.IMS_PER_BATCH
+        batch_size = config.TRAIN.BATCH_SIZE / config.TRAIN.IMS_PER_BATCH
         # output shape
         roi_shape = (batch_size, 5)  # used for input of roi-pooling
         label_shape = (batch_size, )  # becauseful not set (batch_size, 1)

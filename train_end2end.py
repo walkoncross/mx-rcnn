@@ -39,7 +39,7 @@ def end2end_train(image_set, test_image_set, year, root_path, devkit_path, pretr
 
     # setup multi-gpu
     config.TRAIN.IMS_PER_BATCH *= len(ctx)
-    config.TRAIN.RPN_BATCH_SIZE *= len(ctx)
+    config.TRAIN.BATCH_SIZE *= len(ctx)  # no used here
 
     # infer max shape
     max_data_shape = [('data', (config.TRAIN.IMS_PER_BATCH, 3, 1000, 1000))]

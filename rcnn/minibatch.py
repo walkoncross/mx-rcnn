@@ -347,9 +347,9 @@ def assign_anchor(feat_shape, gt_boxes, im_info, feat_stride=16,
         positive_weights = np.ones((1, 4)) * 1.0 / num_examples
         negative_weights = np.ones((1, 4)) * 1.0 / num_examples
     else:
-        assert ((config.TRAIN.RPN_POSTIVE_WEIGHT > 0) & (config.TRAIN.RPN_POSTIVE_WEIGHT < 1))
-        positive_weights = config.TRAIN.RPN_POSTIVE_WEIGHT / np.sum(labels == 1)
-        negative_weights = (1.0 - config.TRAIN.RPN_POSTIVE_WEIGHT) / np.sum(labels == 1)
+        assert ((config.TRAIN.RPN_POSITIVE_WEIGHT > 0) & (config.TRAIN.RPN_POSITIVE_WEIGHT < 1))
+        positive_weights = config.TRAIN.RPN_POSITIVE_WEIGHT / np.sum(labels == 1)
+        negative_weights = (1.0 - config.TRAIN.RPN_POSITIVE_WEIGHT) / np.sum(labels == 1)
     bbox_outside_weights[labels == 1, :] = positive_weights
     bbox_outside_weights[labels == 0, :] = negative_weights
 

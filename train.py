@@ -25,8 +25,8 @@ def main():
     logger.setLevel(logging.INFO)
     config.TRAIN.BG_THRESH_HI = 0.5  # TODO(verify)
     config.TRAIN.BG_THRESH_LO = 0.0  # TODO(verify)
-    config.SCALES = (600, )
-    config.MAX_SIZE = 1000
+    config.SCALES = (640, )  # for wider face detection training
+    config.MAX_SIZE = 1024
     config.TRAIN.RPN_MIN_SIZE = 10
 
     logging.info('########## TRAIN FASTER-RCNN WITH APPROXIMATE JOINT END2END #############')
@@ -39,20 +39,20 @@ def main():
     # setup multi-gpu
     ctx = [mx.gpu(int(i)) for i in args.gpu_ids.split(',')]
     config.TRAIN.IMS_PER_BATCH *= len(ctx)
-    config.TRAIN.RPN_BATCH_SIZE *= len(ctx)
+    config.TRAIN.BATCH_SIZE *= len(ctx)
 
     # infer max shape
-    max_data_shape = [('data', (config.TRAIN.IMS_PER_BATCH, 3, 1000, 1000))]
+    max_data_shape = [('data', (config.TRAIN.IMS_PER_BATCH, 3, config.MAX_SIZE, config.MAX_SIZE))]
     max_data_shape_dict = {k: v for k, v in max_data_shape}
     _, feat_shape, _ = feat_sym.infer_shape(**max_data_shape_dict)
     from rcnn.minibatch import assign_anchor
     import numpy as np
-    label = assign_anchor(feat_shape[0], np.zeros((0, 5)), [[1000, 1000, 1.0]])
+    label = assign_anchor(feat_shape[0], np.zeros((0, 5)), [[config.MAX_SIZE, config.MAX_SIZE, 1.0]])
     max_label_shape = [('label', label['label'].shape),
                        ('bbox_target', label['bbox_target'].shape),
                        ('bbox_inside_weight', label['bbox_inside_weight'].shape),
                        ('bbox_outside_weight', label['bbox_outside_weight'].shape),
-                       ('gt_boxes', (config.TRAIN.RPN_BATCH_SIZE, 5*200))]  # assume at most 200 faces in image
+                       ('gt_boxes', (config.TRAIN.IMS_PER_BATCH, 5*200))]  # assume at most 200 faces in image
     # print 'providing maximum shape', max_data_shape, max_label_shape
 
     voc, roidb = load_gt_roidb_from_list(args.dataset_name, args.lst, args.dataset_root,
@@ -100,7 +100,8 @@ def main():
                         'lr_scheduler': WarmupScheduler(args.factor_step, 0.1, warmup_lr=0.1*args.lr, warmup_step=200) \
                                         if not args.resume else mx.lr_scheduler.FactorScheduler(args.factor_step, 0.1),
                         'clip_gradient': 1.0,
-                        'rescale_grad': (1.0 / config.TRAIN.RPN_BATCH_SIZE)}
+                        'rescale_grad': 1.0}
+                        # 'rescale_grad': (1.0 / config.TRAIN.RPN_BATCH_SIZE)}
     # train
     mod = MutableModule(sym, data_names=data_names, label_names=label_names, logger=logger, context=ctx,
                         max_data_shapes=max_data_shape, max_label_shapes=max_label_shape,
