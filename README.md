@@ -1,9 +1,17 @@
 # Faster R-CNN in MXNet with distributed implementation and data parallelization
+-------------------------------------------------------------------
 
-Region Proposal Network solves object detection as a regression problem 
-from the objectness perspective. Bounding boxes are predicted by applying 
-learned bounding box deltas to base boxes, namely anchor boxes across 
-different positions in feature maps. Training process directly learns a 
+This repo is forked from https://github.com/precedenceguo/mx-rcnn, and added some new features on it:
+* support approximate joint end2end training, ref. [train_end2end.py](train_end2end.py), it can  get comparable result with alternate training.
+* add DetectionList Class for any object detection dataset, you only need to prepare your annation list, ref. [detection_list.py](helper/dataset/detection_list.py).
+* fix some bugs and typos.
+
+---------------------------------------------------------------------
+
+Region Proposal Network solves object detection as a regression problem
+from the objectness perspective. Bounding boxes are predicted by applying
+learned bounding box deltas to base boxes, namely anchor boxes across
+different positions in feature maps. Training process directly learns a
 mapping from raw image intensities to bounding box transformation targets.
 
 Fast R-CNN treats general object detection as a classification problem and
@@ -13,7 +21,7 @@ detection results. Cropping feature maps instead of image input accelerates
 computation utilizing shared convolution maps. Bounding box displacements
 are simultaneously learned in the training process.
 
-Faster R-CNN utilize an alternate optimization training process between RPN 
+Faster R-CNN utilize an alternate optimization training process between RPN
 and Fast R-CNN. Fast R-CNN weights are used to initiate RPN for training.
 
 ## Getting Started
@@ -22,7 +30,7 @@ and Fast R-CNN. Fast R-CNN weights are used to initiate RPN for training.
   Follow the instructions at http://mxnet.readthedocs.io/en/latest/how_to/build.html. Install the python interface.
 * Try out detection result by running `python demo.py --prefix final --epoch 0 --image myimage.jpg --gpu 0`.
   Suppose you have downloaded pretrained network and place the extracted file `final-0000.params` in this folder and there is an image named `myimage.jpg`.
-  
+
 ## Show Result
 * model with approximate joint end2end training
   ![train approximate](./result.jpg)
