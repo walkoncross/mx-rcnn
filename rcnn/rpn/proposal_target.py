@@ -29,13 +29,14 @@ class ProposalTargetOperator(mx.operator.CustomOp):
             self.cfg_key = 'TRAIN'
         else:
             self.cfg_key = 'TEST'
+        self._img_per_batch = 1
 
     def forward(self, is_train, req, in_data, out_data, aux):
-        assert config.TRAIN.BATCH_SIZE % config.TRAIN.IMS_PER_BATCH == 0, \
-                'IMAGESPERBATCH {} must devide BATCHSIZE {}'.format(config.TRAIN.IMS_PER_BATCH, config.TRAIN.BATCH_SIZE)
-        num_images = config.TRAIN.IMS_PER_BATCH  # 1
-        assert(num_images == 1, "only support signle image")
-        rois_per_image = config.TRAIN.BATCH_SIZE / config.TRAIN.IMS_PER_BATCH
+        assert config.TRAIN.BATCH_SIZE % self._img_per_batch == 0, \
+                'IMAGESPERBATCH {} must devide BATCHSIZE {}'.format(self._img_per_batch, config.TRAIN.BATCH_SIZE)
+        num_images = self._img_per_batch  # 1
+        assert num_images == 1, "only support signle image"
+        rois_per_image = config.TRAIN.BATCH_SIZE / self._img_per_batch
         fg_rois_per_image = np.round(config.TRAIN.FG_FRACTION * rois_per_image).astype(int)  # neg : pos=3 : 1
         all_rois = in_data[0].asnumpy()
         gt_boxes = in_data[1].asnumpy()
@@ -88,6 +89,7 @@ class ProposalTargetProp(mx.operator.CustomOpProp):
             self.cfg_key = 'TRAIN'
         else:
             self.cfg_key = 'TEST'
+        self._img_per_batch = 1
 
     def list_arguments(self):
         return ['rpn_roi', 'gt_boxes']
@@ -99,7 +101,7 @@ class ProposalTargetProp(mx.operator.CustomOpProp):
         rpn_roi_shape = in_shape[0]
         gt_boxes_shape = in_shape[1]
 
-        batch_size = config.TRAIN.BATCH_SIZE / config.TRAIN.IMS_PER_BATCH
+        batch_size = config.TRAIN.BATCH_SIZE / self._img_per_batch
         # output shape
         roi_shape = (batch_size, 5)  # used for input of roi-pooling
         label_shape = (batch_size, )  # becauseful not set (batch_size, 1)
