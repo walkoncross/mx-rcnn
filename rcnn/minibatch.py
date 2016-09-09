@@ -33,7 +33,7 @@ from helper.processing.bbox_transform import bbox_transform
 from rcnn.config import config
 
 
-def get_minibatch(roidb, num_classes, mode='test'):
+def get_minibatch(roidb, num_classes, mode='test', need_mean=True):
     """
     return minibatch of images in roidb
     :param roidb: a list of dict, whose length controls batch size
@@ -44,7 +44,7 @@ def get_minibatch(roidb, num_classes, mode='test'):
     # build im_array: [num_images, c, h, w]
     num_images = len(roidb)
     random_scale_indexes = npr.randint(0, high=len(config.SCALES), size=num_images)
-    im_array, im_scales = get_image_array(roidb, config.SCALES, random_scale_indexes)
+    im_array, im_scales = get_image_array(roidb, config.SCALES, random_scale_indexes, need_mean=need_mean)
 
     if mode == 'train':
         cfg_key = 'TRAIN'
@@ -124,7 +124,7 @@ def get_minibatch(roidb, num_classes, mode='test'):
     return data, label
 
 
-def get_image_array(roidb, scales, scale_indexes):
+def get_image_array(roidb, scales, scale_indexes, need_mean=True):
     """
     build image array from specific roidb
     :param roidb: images to be processed
@@ -141,7 +141,7 @@ def get_image_array(roidb, scales, scale_indexes):
             im = im[:, ::-1, :]
         target_size = scales[scale_indexes[i]]
         im, im_scale = image_processing.resize(im, target_size, config.MAX_SIZE)
-        im_tensor = image_processing.transform(im, config.PIXEL_MEANS)
+        im_tensor = image_processing.transform(im, config.PIXEL_MEANS, need_mean=need_mean)
         processed_ims.append(im_tensor)
         im_scales.append(im_scale)
     array = image_processing.tensor_vstack(processed_ims)

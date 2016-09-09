@@ -145,7 +145,7 @@ class ROIIter(mx.io.DataIter):
 
 class AnchorLoader(mx.io.DataIter):
     def __init__(self, feat_sym, roidb, batch_size=1, shuffle=False, mode='train', ctx=None, work_load_list=None,
-                 feat_stride=16, anchor_scales=(8, 16, 32), anchor_ratios=(0.5, 1, 2), allowed_border=0):
+                 feat_stride=16, anchor_scales=(8, 16, 32), anchor_ratios=(0.5, 1, 2), allowed_border=0, need_mean=True):
         """
         This Iter will provide roi data to Fast R-CNN network
         :param feat_sym: to infer shape of assign_output
@@ -173,6 +173,7 @@ class AnchorLoader(mx.io.DataIter):
         self.anchor_ratios = anchor_ratios
         self.allowed_border = allowed_border
 
+        self.need_mean = need_mean
         self.cur = 0
         self.size = len(roidb)
         self.index = np.arange(self.size)
@@ -261,7 +262,7 @@ class AnchorLoader(mx.io.DataIter):
         cur_to = min(cur_from + self.batch_size, self.size)
         roidb = [self.roidb[self.index[i]] for i in range(cur_from, cur_to)]
         if self.mode == 'test':
-            self.data, self.label = minibatch.get_minibatch(roidb, self.num_classes, self.mode)
+            self.data, self.label = minibatch.get_minibatch(roidb, self.num_classes, self.mode, need_mean=self.need_mean)
         else:
             work_load_list = self.work_load_list
             ctx = self.ctx
@@ -275,7 +276,7 @@ class AnchorLoader(mx.io.DataIter):
             label_list = []
             for islice in slices:
                 iroidb = [roidb[i] for i in range(islice.start, islice.stop)]
-                data, label = minibatch.get_minibatch(iroidb, self.num_classes, self.mode)
+                data, label = minibatch.get_minibatch(iroidb, self.num_classes, self.mode, need_mean=self.need_mean)
                 data_list.append(data)
                 label_list.append(label)
 

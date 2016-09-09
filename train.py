@@ -76,10 +76,8 @@ def metric():
 def main():
     logging.info('########## TRAIN FASTER-RCNN WITH APPROXIMATE JOINT END2END #############')
     init_config()
-    # import pdb; pdb.set_trace()
     sym = resnet_50(num_class=args.num_classes, bn_mom=args.bn_mom, is_train=True)  # consider background
     feat_sym = sym.get_internals()['rpn_cls_score_output']
-    # max_data_shape, max_label_shape = get_max_shape(feat_sym)
 
     # setup for multi-gpu
     ctx = [mx.gpu(int(i)) for i in args.gpu_ids.split(',')]
@@ -91,7 +89,7 @@ def main():
     voc, roidb = load_gt_roidb_from_list(args.dataset_name, args.lst, args.dataset_root,
                                          args.outdata_path, flip=not args.no_flip)
     train_data = AnchorLoader(feat_sym, roidb, batch_size=config.TRAIN.IMS_PER_BATCH,
-                              shuffle=not args.no_shuffle, mode='train', ctx=ctx)
+                              shuffle=not args.no_shuffle, mode='train', ctx=ctx, need_mean=args.need_mean)
     # model
     args_params, auxs_params, _ = load_param(args.pretrained, args.load_epoch, convert=True)
     if not args.resume:
@@ -147,6 +145,8 @@ if __name__ == '__main__':
                         default=20, type=int)
     parser.add_argument('--kv-store', dest='kv_store', help='the kv-store type',
                         default='device', type=str)
+    parser.add_argument('--need-mean', action='store_true', default=False,
+                        help='if true, then will minus the mean value of pixel, resnet pre-trained model do not need this')
     parser.add_argument('--no-flip', action='store_true', default=False,
                         help='if true, then will flip the dataset')
     parser.add_argument('--no-shuffle', action='store_true', default=False,
