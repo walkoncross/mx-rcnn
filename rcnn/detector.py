@@ -50,8 +50,6 @@ class Detector(object):
         arg_shapes_dict = {name: shape for name, shape in zip(self.symbol.list_arguments(), arg_shapes)}
         if not config.END2END:
             self.arg_params['cls_prob_label'] = mx.nd.zeros(arg_shapes_dict['cls_prob_label'], self.ctx)
-        aux_names = self.symbol.list_auxiliary_states()
-        self.aux_params = {k: mx.nd.zeros(s, self.ctx) for k, s in zip(aux_names, aux_shapes)}
 
         # execute
         self.executor = self.symbol.bind(self.ctx, self.arg_params, args_grad=None,

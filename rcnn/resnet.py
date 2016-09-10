@@ -157,7 +157,10 @@ def resnet(units, num_stage, filter_list, num_class=2, num_anchor=9, bottle_neck
 
     # cls
     cls_score = mx.symbol.FullyConnected(name='cls_score', data=flat, num_hidden=num_class)
-    cls_prob = mx.symbol.SoftmaxOutput(name='cls_prob', data=cls_score, label=rois[1], normalization='batch')
+    if is_train:
+        cls_prob = mx.symbol.SoftmaxOutput(name='cls_prob', data=cls_score, label=rois[1], normalization='batch')
+    else:
+        cls_prob = mx.symbol.SoftmaxActivation(name='cls_prob', data=cls_score)
 
     # reg
     bbox_pred = mx.symbol.FullyConnected(name='bbox_pred', data=flat, num_hidden=num_class * 4)
@@ -167,7 +170,10 @@ def resnet(units, num_stage, filter_list, num_class=2, num_anchor=9, bottle_neck
 
     # reshape output
     cls_prob = mx.symbol.Reshape(data=cls_prob, shape=(config.TRAIN.IMS_PER_BATCH, -1, num_class), name='cls_prob_reshape')
-    bbox_pred = mx.symbol.Reshape(data=bbox_loss, shape=(config.TRAIN.IMS_PER_BATCH, -1, 4 * num_class), name='bbox_pred_reshape')
+    if is_train:
+        bbox_pred = mx.symbol.Reshape(data=bbox_loss, shape=(config.TRAIN.IMS_PER_BATCH, -1, 4 * num_class), name='bbox_pred_reshape')
+    else:
+        bbox_pred = mx.symbol.Reshape(data=bbox_pred, shape=(config.TRAIN.IMS_PER_BATCH, -1, 4 * num_class), name='bbox_pred_reshape')
 
     if is_train:
         return mx.symbol.Group([rois[1], rpn_cls_loss, rpn_bbox_loss, cls_prob, bbox_pred])
