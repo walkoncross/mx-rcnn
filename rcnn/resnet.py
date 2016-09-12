@@ -95,16 +95,19 @@ def rpn(data, num_class=2, num_anchor=9, is_train=False):
 
     rpn_cls_prob = mx.symbol.SoftmaxActivation(data=rpn_cls_score_reshape, mode="channel", name="rpn_cls_prob")
     rpn_cls_prob_reshape = mx.symbol.Reshape(data=rpn_cls_prob, shape=(0, 2 * num_anchor, -1, 0), name='rpn_cls_prob_reshape')
-    rpn_roi = mx.symbol.Custom(
-        cls_prob=rpn_cls_prob_reshape, bbox_pred=rpn_bbox_pred, im_info=im_info, name='rpn_rois',
-        op_type='proposal', feat_stride=16, scales=(8, 16, 32), ratios=(0.5, 1, 2), is_train=True)
     if is_train:
+        rpn_roi = mx.symbol.Custom(
+            cls_prob=rpn_cls_prob_reshape, bbox_pred=rpn_bbox_pred, im_info=im_info, name='rpn_rois',
+        op_type='proposal', feat_stride=16, scales=(8, 16, 32), ratios=(0.5, 1, 2), is_train=True)
         rois = mx.symbol.Custom(
             rpn_roi=rpn_roi, gt_boxes=gt_boxes, name='rois', op_type='proposal_target',
             num_classes=num_class, is_train=True)
         roi_pool = mx.symbol.ROIPooling(name='roi_pool5', data=data, rois=rois[0], pooled_size=(7, 7), spatial_scale=0.0625)
         return roi_pool, rois, rpn_cls_loss, rpn_bbox_loss
     else:
+        rpn_roi = mx.symbol.Custom(
+            cls_prob=rpn_cls_prob_reshape, bbox_pred=rpn_bbox_pred, im_info=im_info, name='rpn_rois',
+        op_type='proposal', feat_stride=16, scales=(8, 16, 32), ratios=(0.5, 1, 2), is_train=False)
         roi_pool = mx.symbol.ROIPooling(name='roi_pool5', data=data, rois=rpn_roi, pooled_size=(7, 7), spatial_scale=0.0625)
         return roi_pool, rpn_roi
 
