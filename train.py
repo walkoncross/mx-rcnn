@@ -81,9 +81,9 @@ def main():
     logging.info('########## TRAIN FASTER-RCNN WITH APPROXIMATE JOINT END2END #############')
     init_config()
     if "resnet" in args.pretrained:
-        sym = get_faster_rcnn(num_classes=args.num_classes)  # consider background
-    else:
         sym = resnet_50(num_class=args.num_classes, bn_mom=args.bn_mom, is_train=True)  # consider background
+    else:
+        sym = get_faster_rcnn(num_classes=args.num_classes)  # consider background
     feat_sym = sym.get_internals()['rpn_cls_score_output']
 
     # setup for multi-gpu
