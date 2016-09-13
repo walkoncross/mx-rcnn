@@ -115,7 +115,7 @@ def main():
                         'rescale_grad':     1.0}
 
     if "resnet" in args.pretrained:
-        fixed_param_prefix = ['conv0', 'stage1', 'stage2', 'bn_', '_bn']
+        fixed_param_prefix = ['conv0', 'stage1', 'stage2', 'bn_', '_bn', 'bn0', 'bn1']
     else:
         fixed_param_prefix = ['conv1', 'conv2', 'conv3']
     # train
