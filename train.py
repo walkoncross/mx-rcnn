@@ -6,6 +6,7 @@ from rcnn.loader import AnchorLoader
 from rcnn.metric import AccuracyMetric, LogLossMetric, SmoothL1LossMetric
 from rcnn.module import MutableModule
 from rcnn.resnet import resnet_50
+from rcnn.symbol import get_faster_rcnn
 from utils.load_data import load_gt_roidb_from_list
 from utils.load_model import do_checkpoint, load_param
 from rcnn.warmup import WarmupScheduler
@@ -40,10 +41,13 @@ def get_max_shape(feat_sym):
     return max_data_shape, max_label_shape
 
 
-def init_model(args_params, auxs_params, train_data, sym):
-
-    del args_params['fc1_weight']
-    del args_params['fc1_bias']
+def init_model(args_params, auxs_params, train_data, sym, sym_name):
+    if "resnet" in args.pretrained:
+        del args_params['fc1_weight']
+        del args_params['fc1_bias']
+    else:
+        del args_params['fc8_weight']
+        del args_params['fc8_bias']
     input_shapes = {k: (1,)+ v[1::] for k, v in train_data.provide_data + train_data.provide_label}
     arg_shape, _, _ = sym.infer_shape(**input_shapes)
     arg_shape_dict = dict(zip(sym.list_arguments(), arg_shape))
@@ -76,13 +80,15 @@ def metric():
 def main():
     logging.info('########## TRAIN FASTER-RCNN WITH APPROXIMATE JOINT END2END #############')
     init_config()
-    sym = resnet_50(num_class=args.num_classes, bn_mom=args.bn_mom, is_train=True)  # consider background
+    if "resnet" in args.pretrained:
+        sym = get_faster_rcnn(num_classes=args.num_classes)  # consider background
+    else:
+        sym = resnet_50(num_class=args.num_classes, bn_mom=args.bn_mom, is_train=True)  # consider background
     feat_sym = sym.get_internals()['rpn_cls_score_output']
 
     # setup for multi-gpu
     ctx = [mx.gpu(int(i)) for i in args.gpu_ids.split(',')]
     config.TRAIN.IMS_PER_BATCH *= len(ctx)
-    # config.TRAIN.BATCH_SIZE *= len(ctx)
     max_data_shape, max_label_shape = get_max_shape(feat_sym)
 
     # data
@@ -93,7 +99,7 @@ def main():
     # model
     args_params, auxs_params, _ = load_param(args.pretrained, args.load_epoch, convert=True)
     if not args.resume:
-        args_params, auxs_params= init_model(args_params, auxs_params, train_data, sym)
+        args_params, auxs_params= init_model(args_params, auxs_params, train_data, sym, args.pretrained)
     data_names = [k[0] for k in train_data.provide_data]
     label_names = [k[0] for k in train_data.provide_label]
     batch_end_callback = Speedometer(train_data.batch_size, frequent=args.frequent)
