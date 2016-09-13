@@ -2,7 +2,8 @@ import mxnet as mx
 import rpn.proposal, rpn.proposal_target
 from config import config
 
-def residual_unit(data, num_filter, stride, dim_match, name, bottle_neck=True, bn_mom=0.9, workspace=512):
+def residual_unit(data, num_filter, stride, dim_match, name, bottle_neck=True, bn_mom=0.9, workspace=512,
+                  bn_global=True):
     """Return ResNet Unit symbol for building ResNet
     Parameters
     ----------
@@ -23,15 +24,18 @@ def residual_unit(data, num_filter, stride, dim_match, name, bottle_neck=True, b
     """
     if bottle_neck:
         # the same as https://github.com/facebook/fb.resnet.torch#notes, a bit difference with origin paper
-        bn1 = mx.sym.BatchNorm(data=data, fix_gamma=False, eps=2e-5, momentum=bn_mom, name=name + '_bn1')
+        bn1 = mx.sym.BatchNorm(data=data, fix_gamma=False, eps=2e-5, momentum=bn_mom, use_global_stats=bn_global,
+                               name=name + '_bn1')
         act1 = mx.sym.Activation(data=bn1, act_type='relu', name=name + '_relu1')
         conv1 = mx.sym.Convolution(data=act1, num_filter=int(num_filter*0.25), kernel=(1,1), stride=(1,1), pad=(0,0),
                                       no_bias=True, workspace=workspace, name=name + '_conv1')
-        bn2 = mx.sym.BatchNorm(data=conv1, fix_gamma=False, eps=2e-5, momentum=bn_mom, name=name + '_bn2')
+        bn2 = mx.sym.BatchNorm(data=conv1, fix_gamma=False, eps=2e-5, momentum=bn_mom, use_global_stats=bn_global,
+                               name=name + '_bn2')
         act2 = mx.sym.Activation(data=bn2, act_type='relu', name=name + '_relu2')
         conv2 = mx.sym.Convolution(data=act2, num_filter=int(num_filter*0.25), kernel=(3,3), stride=stride, pad=(1,1),
                                       no_bias=True, workspace=workspace, name=name + '_conv2')
-        bn3 = mx.sym.BatchNorm(data=conv2, fix_gamma=False, eps=2e-5, momentum=bn_mom, name=name + '_bn3')
+        bn3 = mx.sym.BatchNorm(data=conv2, fix_gamma=False, eps=2e-5, momentum=bn_mom, use_global_stats=bn_global
+                               , name=name + '_bn3')
         act3 = mx.sym.Activation(data=bn3, act_type='relu', name=name + '_relu3')
         conv3 = mx.sym.Convolution(data=act3, num_filter=num_filter, kernel=(1,1), stride=(1,1), pad=(0,0), no_bias=True,
                                    workspace=workspace, name=name + '_conv3')
@@ -42,11 +46,13 @@ def residual_unit(data, num_filter, stride, dim_match, name, bottle_neck=True, b
                                             workspace=workspace, name=name+'_sc')
         return conv3 + shortcut
     else:
-        bn1 = mx.sym.BatchNorm(data=data, fix_gamma=False, momentum=bn_mom, eps=2e-5, name=name + '_bn1')
+        bn1 = mx.sym.BatchNorm(data=data, fix_gamma=False, momentum=bn_mom, eps=2e-5, use_global_stats=bn_global
+                               , name=name + '_bn1')
         act1 = mx.sym.Activation(data=bn1, act_type='relu', name=name + '_relu1')
         conv1 = mx.sym.Convolution(data=act1, num_filter=num_filter, kernel=(3,3), stride=stride, pad=(1,1),
                                       no_bias=True, workspace=workspace, name=name + '_conv1')
-        bn2 = mx.sym.BatchNorm(data=conv1, fix_gamma=False, momentum=bn_mom, eps=2e-5, name=name + '_bn2')
+        bn2 = mx.sym.BatchNorm(data=conv1, fix_gamma=False, momentum=bn_mom, eps=2e-5, use_global_stats=bn_global
+                               , name=name + '_bn2')
         act2 = mx.sym.Activation(data=bn2, act_type='relu', name=name + '_relu2')
         conv2 = mx.sym.Convolution(data=act2, num_filter=num_filter, kernel=(3,3), stride=(1,1), pad=(1,1),
                                       no_bias=True, workspace=workspace, name=name + '_conv2')
@@ -58,7 +64,7 @@ def residual_unit(data, num_filter, stride, dim_match, name, bottle_neck=True, b
         return conv2 + shortcut
 
 
-def rpn(data, num_class=2, num_anchor=9, is_train=False):
+def rpn(data, num_class=2, num_anchor=12, is_train=False):
     """Return RPN+ROIPooling Unit
     Parameters
     ----------
@@ -98,7 +104,7 @@ def rpn(data, num_class=2, num_anchor=9, is_train=False):
     if is_train:
         rpn_roi = mx.symbol.Custom(
             cls_prob=rpn_cls_prob_reshape, bbox_pred=rpn_bbox_pred, im_info=im_info, name='rpn_rois',
-        op_type='proposal', feat_stride=16, scales=(8, 16, 32), ratios=(0.5, 1, 2), is_train=True)
+        op_type='proposal', feat_stride=16, scales=(4, 8, 16, 32), ratios=(0.5, 1, 2), is_train=True)
         rois = mx.symbol.Custom(
             rpn_roi=rpn_roi, gt_boxes=gt_boxes, name='rois', op_type='proposal_target',
             num_classes=num_class, is_train=True)
@@ -107,12 +113,13 @@ def rpn(data, num_class=2, num_anchor=9, is_train=False):
     else:
         rpn_roi = mx.symbol.Custom(
             cls_prob=rpn_cls_prob_reshape, bbox_pred=rpn_bbox_pred, im_info=im_info, name='rpn_rois',
-        op_type='proposal', feat_stride=16, scales=(8, 16, 32), ratios=(0.5, 1, 2), is_train=False)
+        op_type='proposal', feat_stride=16, scales=(4, 8, 16, 32), ratios=(0.5, 1, 2), is_train=False)
         roi_pool = mx.symbol.ROIPooling(name='roi_pool5', data=data, rois=rpn_roi, pooled_size=(7, 7), spatial_scale=0.0625)
         return roi_pool, rpn_roi
 
 
-def resnet(units, num_stage, filter_list, num_class=2, num_anchor=9, bottle_neck=True, bn_mom=0.9, workspace=512, is_train=False):
+def resnet(units, num_stage, filter_list, num_class=2, num_anchor=12, bottle_neck=True, bn_mom=0.9,
+           bn_global=True, workspace=512, is_train=False):
     """Return ResNet symbol of cifar10 and imagenet
     Parameters
     ----------
@@ -135,25 +142,25 @@ def resnet(units, num_stage, filter_list, num_class=2, num_anchor=9, bottle_neck
     num_unit = len(units)
     assert(num_unit == num_stage)
     data = mx.sym.Variable(name='data')
-    data = mx.sym.BatchNorm(data=data, fix_gamma=True, eps=2e-5, momentum=bn_mom, name='bn_data')
+    data = mx.sym.BatchNorm(data=data, fix_gamma=True, eps=2e-5, momentum=bn_mom, use_global_stats=bn_global, name='bn_data')
     body = mx.sym.Convolution(data=data, num_filter=filter_list[0], kernel=(7, 7), stride=(2,2), pad=(3, 3),
                               no_bias=True, name="conv0", workspace=workspace)
-    body = mx.sym.BatchNorm(data=body, fix_gamma=False, eps=2e-5, momentum=bn_mom, name='bn0')
+    body = mx.sym.BatchNorm(data=body, fix_gamma=False, eps=2e-5, momentum=bn_mom, use_global_stats=bn_global, name='bn0')
     body = mx.sym.Activation(data=body, act_type='relu', name='relu0')
     body = mx.symbol.Pooling(data=body, kernel=(3, 3), stride=(2,2), pad=(1,1), pool_type='max')
     for i in range(num_stage):
         body = residual_unit(body, filter_list[i+1], (1 if i==0 else 2, 1 if i==0 else 2), False,
                              name='stage%d_unit%d' % (i + 1, 1), bottle_neck=bottle_neck, workspace=workspace)
+        for j in range(units[i]-1):
+            body = residual_unit(body, filter_list[i+1], (1,1), True, name='stage%d_unit%d' % (i + 1, j + 2),
+                                 bottle_neck=bottle_neck, workspace=workspace)
         if i == num_stage - 2:
-            # add RPN and ROI Pooling here
+            # put RPN and ROI Pooling here, i.e.the last of stage 3
             if is_train:
                 body, rois, rpn_cls_loss, rpn_bbox_loss = rpn(body, num_class=num_class, num_anchor=num_anchor, is_train=True)
             else:
                 body, rpn_roi = rpn(body, num_class=num_class, num_anchor=num_anchor, is_train=False)
-        for j in range(units[i]-1):
-            body = residual_unit(body, filter_list[i+1], (1,1), True, name='stage%d_unit%d' % (i + 1, j + 2),
-                                 bottle_neck=bottle_neck, workspace=workspace)
-    bn1 = mx.sym.BatchNorm(data=body, fix_gamma=False, eps=2e-5, momentum=bn_mom, name='bn1')
+    bn1 = mx.sym.BatchNorm(data=body, fix_gamma=False, eps=2e-5, momentum=bn_mom, use_global_stats=bn_global, name='bn1')
     relu1 = mx.sym.Activation(data=bn1, act_type='relu', name='relu1')
     pool1 = mx.symbol.Pooling(data=relu1, global_pool=True, kernel=(7, 7), pool_type='avg', name='pool1')
     flat = mx.symbol.Flatten(data=pool1)
@@ -184,31 +191,31 @@ def resnet(units, num_stage, filter_list, num_class=2, num_anchor=9, bottle_neck
         return mx.symbol.Group([rpn_roi, cls_prob, bbox_pred])
 
 
-def resnet_18(num_class=2, bn_mom=0.99, is_train=False):
+def resnet_18(num_class=2, bn_mom=0.99, bn_global=True, is_train=False):
     return resnet(units=[2, 2, 2, 2], num_stage=4, filter_list=[64, 64, 128, 256, 512], num_class=num_class,
-                  num_anchor=9, bottle_neck=False, bn_mom=bn_mom, workspace=512, is_train=is_train)
+                  num_anchor=12, bottle_neck=False, bn_mom=bn_mom, bn_global=bn_global, workspace=512, is_train=is_train)
 
 
-def resnet_34(num_class=2, bn_mom=0.99, is_train=False):
-    return resnet(units=[3, 4, 6, 3], num_stage=4, filter_list=[64, 64, 128, 256, 512],
-                  num_class=num_class, num_anchor=9, bottle_neck=False, bn_mom=bn_mom, workspace=512, is_train=is_train)
+def resnet_34(num_class=2, bn_mom=0.99, bn_global=True, is_train=False):
+    return resnet(units=[3, 4, 6, 3], num_stage=4, filter_list=[64, 64, 128, 256, 512], num_class=num_class,
+                  num_anchor=12, bottle_neck=False, bn_mom=bn_mom, bn_global=bn_global, workspace=512, is_train=is_train)
 
 
-def resnet_50(num_class=2, bn_mom=0.99, is_train=False):
+def resnet_50(num_class=2, bn_mom=0.99, bn_global=True, is_train=False):
     return resnet(units=[3, 4, 6, 3], num_stage=4, filter_list=[64, 256, 512, 1024, 2048], num_class=num_class,
-                  num_anchor=9, bottle_neck=True, bn_mom=bn_mom, workspace=512, is_train=is_train)
+                  num_anchor=12, bottle_neck=True, bn_mom=bn_mom, bn_global=bn_global, workspace=512, is_train=is_train)
 
 
-def resnet_101(num_class=2, bn_mom=0.99, is_train=False):
+def resnet_101(num_class=2, bn_mom=0.99, bn_global=True, is_train=False):
     return resnet(units=[3, 4, 23, 3], num_stage=4, filter_list=[64, 256, 512, 1024, 2048], num_class=num_class,
-                  num_anchor=9, bottle_neck=True, bn_mom=bn_mom, workspace=512, is_train=is_train)
+                  num_anchor=12, bottle_neck=True, bn_mom=bn_mom, bn_global=bn_global, workspace=512, is_train=is_train)
 
 
-def resnet_152(num_class=2, bn_mom=0.99, is_train=False):
+def resnet_152(num_class=2, bn_mom=0.99, bn_global=True, is_train=False):
     return resnet(units=[3, 8, 36, 3], num_stage=4, filter_list=[64, 256, 512, 1024, 2048], num_class=num_class,
-                  num_anchor=9, bottle_neck=True, bn_mom=bn_mom, workspace=512, is_train=is_train)
+                  num_anchor=12, bottle_neck=True, bn_mom=bn_mom, bn_global=bn_global, workspace=512, is_train=is_train)
 
 
-def resnet_200(num_class=2, bn_mom=0.99, is_train=False):
+def resnet_200(num_class=2, bn_mom=0.99, bn_global=True, is_train=False):
     return resnet(units=[3, 24, 36, 3], num_stage=4, filter_list=[64, 256, 512, 1024, 2048], num_class=num_class,
-                  num_anchor=9, bottle_neck=True, bn_mom=bn_mom, workspace=512, is_train=is_train)
+                  num_anchor=12, bottle_neck=True, bn_mom=bn_mom, bn_global=bn_global, workspace=512, is_train=is_train)

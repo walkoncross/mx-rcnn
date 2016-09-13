@@ -32,12 +32,13 @@ def get_max_shape(feat_sym):
     max_data_shape = [('data', (config.TRAIN.IMS_PER_BATCH, 3, config.MAX_SIZE, config.MAX_SIZE))]
     max_data_shape_dict = {k: v for k, v in max_data_shape}
     _, feat_shape, _ = feat_sym.infer_shape(**max_data_shape_dict)
-    label = assign_anchor(feat_shape[0], np.zeros((0, 5)), [[config.MAX_SIZE, config.MAX_SIZE, 1.0]])
+    label = assign_anchor(feat_shape[0], np.zeros((0, 5)), [[config.MAX_SIZE, config.MAX_SIZE, 1.0]],
+                          scales=(4, 8, 16, 32))
     max_label_shape = [('label', label['label'].shape),
                        ('bbox_target', label['bbox_target'].shape),
                        ('bbox_inside_weight', label['bbox_inside_weight'].shape),
                        ('bbox_outside_weight', label['bbox_outside_weight'].shape),
-                       ('gt_boxes', (config.TRAIN.IMS_PER_BATCH, 5*200))]  # assume at most 200 faces in image
+                       ('gt_boxes', (config.TRAIN.IMS_PER_BATCH, 5*1200))]  # assume at most 1200 faces in image
     return max_data_shape, max_label_shape
 
 
@@ -81,11 +82,11 @@ def main():
     logging.info('########## TRAIN FASTER-RCNN WITH APPROXIMATE JOINT END2END #############')
     init_config()
     if "resnet" in args.pretrained:
-        sym = resnet_50(num_class=args.num_classes, bn_mom=args.bn_mom, is_train=True)  # consider background
+        sym = resnet_50(num_class=args.num_classes, bn_mom=args.bn_mom, bn_global=True, is_train=True)  # consider background
     else:
         sym = get_faster_rcnn(num_classes=args.num_classes)  # consider background
-    feat_sym = sym.get_internals()['rpn_cls_score_output']
 
+    feat_sym = sym.get_internals()['rpn_cls_score_output']
     # setup for multi-gpu
     ctx = [mx.gpu(int(i)) for i in args.gpu_ids.split(',')]
     config.TRAIN.IMS_PER_BATCH *= len(ctx)
@@ -94,7 +95,7 @@ def main():
     # data
     voc, roidb = load_gt_roidb_from_list(args.dataset_name, args.lst, args.dataset_root,
                                          args.outdata_path, flip=not args.no_flip)
-    train_data = AnchorLoader(feat_sym, roidb, batch_size=config.TRAIN.IMS_PER_BATCH,
+    train_data = AnchorLoader(feat_sym, roidb, batch_size=config.TRAIN.IMS_PER_BATCH, anchor_scales=(4, 8, 16, 32),
                               shuffle=not args.no_shuffle, mode='train', ctx=ctx, need_mean=args.need_mean)
     # model
     args_params, auxs_params, _ = load_param(args.pretrained, args.load_epoch, convert=True)
@@ -112,11 +113,15 @@ def main():
                                             if not args.resume else mx.lr_scheduler.FactorScheduler(args.factor_step, 0.1),
                         'clip_gradient':    1.0,
                         'rescale_grad':     1.0}
+
+    if "resnet" in args.pretrained:
+        fixed_param_prefix = ['conv0', 'stage1', 'stage2', 'bn_', '_bn']
+    else:
+        fixed_param_prefix = ['conv1', 'conv2', 'conv3']
     # train
     mod = MutableModule(sym, data_names=data_names, label_names=label_names, logger=logger, context=ctx,
-                        max_data_shapes=max_data_shape, max_label_shapes=max_label_shape)
-
-    # import pdb; pdb.set_trace()
+                        max_data_shapes=max_data_shape, max_label_shapes=max_label_shape,
+                        fixed_param_prefix=fixed_param_prefix)
     mod.fit(train_data, eval_metric=metric(), epoch_end_callback=epoch_end_callback,
             batch_end_callback=batch_end_callback, kvstore=args.kv_store,
             optimizer='sgd', optimizer_params=optimizer_params, arg_params=args_params, aux_params=auxs_params,
