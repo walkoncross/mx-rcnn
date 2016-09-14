@@ -1,5 +1,7 @@
 import numpy as np
 import cv2
+import sys
+sys.path.insert(0, '/home/work/wuwei/project/dmlc/mxnet-bn/python')
 import mxnet as mx
 import argparse
 from rcnn.resnet import *
@@ -49,7 +51,7 @@ def main():
     _, arg_params, aux_params = mx.model.load_checkpoint(args.prefix, args.epoch)
     arg_params, aux_params = ch_dev(arg_params, aux_params, ctx)
     if 'resnet' in args.prefix:
-        sym = resnet_50(num_class=2, bn_mom=0.99, is_train=False)
+        sym = resnet_50(num_class=2, bn_mom=0.99, bn_global=True, is_train=False)
     else:
         sym = get_faster_rcnn_test(num_classes=2)
     arg_params["data"] = mx.nd.array(img, ctx)
@@ -90,7 +92,7 @@ if __name__ == "__main__":
     parser.add_argument('--thresh', type=float, default=0.025, help='the threshold of face score')
     parser.add_argument('--nms-thresh', type=float, default=0.3, help='the threshold of nms')
     parser.add_argument('--nest-thresh', type=float, default=0.8, help='the threshold of filter nest')
-    parser.add_argument('--min-size', type=int, default=40, help='the min size of object')
+    parser.add_argument('--min-size', type=int, default=24, help='the min size of object')
     parser.add_argument('--scale', type=int, default=640, help='the scale of shorter edge will be resize to')
     parser.add_argument('--max-scale', type=int, default=1024, help='the maximize scale after resize')
     args = parser.parse_args()

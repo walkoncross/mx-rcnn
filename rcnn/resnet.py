@@ -149,18 +149,20 @@ def resnet(units, num_stage, filter_list, num_class=2, num_anchor=12, bottle_nec
     body = mx.sym.Activation(data=body, act_type='relu', name='relu0')
     body = mx.symbol.Pooling(data=body, kernel=(3, 3), stride=(2,2), pad=(1,1), pool_type='max')
     for i in range(num_stage):
+        bn_global_ = bn_global if i < num_stage-1 else False  # after roi-pooling, do not use use_global_stats
         body = residual_unit(body, filter_list[i+1], (1 if i==0 else 2, 1 if i==0 else 2), False,
-                             name='stage%d_unit%d' % (i + 1, 1), bottle_neck=bottle_neck, workspace=workspace)
+                             name='stage%d_unit%d' % (i + 1, 1), bottle_neck=bottle_neck, workspace=workspace,
+                             bn_global=bn_global_)
         for j in range(units[i]-1):
             body = residual_unit(body, filter_list[i+1], (1,1), True, name='stage%d_unit%d' % (i + 1, j + 2),
-                                 bottle_neck=bottle_neck, workspace=workspace)
+                                 bottle_neck=bottle_neck, workspace=workspace, bn_global=bn_global_)
         if i == num_stage - 2:
             # put RPN and ROI Pooling here, i.e.the last of stage 3
             if is_train:
                 body, rois, rpn_cls_loss, rpn_bbox_loss = rpn(body, num_class=num_class, num_anchor=num_anchor, is_train=True)
             else:
                 body, rpn_roi = rpn(body, num_class=num_class, num_anchor=num_anchor, is_train=False)
-    bn1 = mx.sym.BatchNorm(data=body, fix_gamma=False, eps=2e-5, momentum=bn_mom, use_global_stats=bn_global, name='bn1')
+    bn1 = mx.sym.BatchNorm(data=body, fix_gamma=False, eps=2e-5, momentum=bn_mom, use_global_stats=False, name='bn1')
     relu1 = mx.sym.Activation(data=bn1, act_type='relu', name='relu1')
     pool1 = mx.symbol.Pooling(data=relu1, global_pool=True, kernel=(7, 7), pool_type='avg', name='pool1')
     flat = mx.symbol.Flatten(data=pool1)

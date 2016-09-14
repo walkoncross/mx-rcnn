@@ -109,13 +109,16 @@ def main():
     optimizer_params = {'momentum':         args.mom,
                         'wd':               args.wd,
                         'learning_rate':    args.lr,
-                        'lr_scheduler':     WarmupScheduler(args.factor_step, 0.1, warmup_lr=0.1*args.lr, warmup_step=200) \
-                                            if not args.resume else mx.lr_scheduler.FactorScheduler(args.factor_step, 0.1),
+                        # 'lr_scheduler':     WarmupScheduler(args.factor_step, 0.1, warmup_lr=0.1*args.lr, warmup_step=200) \
+                        #                     if not args.resume else mx.lr_scheduler.FactorScheduler(args.factor_step, 0.1),
+                        'lr_scheduler':     mx.lr_scheduler.FactorScheduler(args.factor_step, 0.1), # seems no need warm up
                         'clip_gradient':    1.0,
                         'rescale_grad':     1.0}
 
     if "resnet" in args.pretrained:
-        fixed_param_prefix = ['conv0', 'stage1', 'stage2', 'bn_', '_bn', 'bn0', 'bn1']
+        # only consider resnet-50 here
+        fixed_param_prefix = ['conv0', 'stage1', 'stage2', 'bn_data', 'bn0', 'stage3_unit1_bn', 'stage3_unit2_bn'
+                              'stage3_unit3_bn', 'stage3_unit4_bn', 'stage3_unit5_bn', 'stage3_unit6_bn']
     else:
         fixed_param_prefix = ['conv1', 'conv2', 'conv3']
     # train
