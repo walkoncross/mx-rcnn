@@ -117,8 +117,7 @@ def main():
 
     if "resnet" in args.pretrained:
         # only consider resnet-50 here
-        fixed_param_prefix = ['conv0', 'stage1', 'stage2', 'bn_data', 'bn0', 'stage3_unit1_bn', 'stage3_unit2_bn'
-                              'stage3_unit3_bn', 'stage3_unit4_bn', 'stage3_unit5_bn', 'stage3_unit6_bn']
+        fixed_param_prefix = ['conv0', 'stage1', 'stage2', 'bn_data', 'bn0']
     else:
         fixed_param_prefix = ['conv1', 'conv2', 'conv3']
     # train
