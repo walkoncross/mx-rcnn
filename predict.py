@@ -89,7 +89,7 @@ if __name__ == "__main__":
     parser.add_argument('--gpu', type=int, default=0, help='the gpu id used for predict')
     parser.add_argument('--prefix', type=str, default='resnet-50', help='the prefix of the pre-trained model')
     parser.add_argument('--epoch', type=int, default=0, help='the epoch of the pre-trained model')
-    parser.add_argument('--thresh', type=float, default=0.025, help='the threshold of face score')
+    parser.add_argument('--thresh', type=float, default=0.5, help='the threshold of face score')
     parser.add_argument('--nms-thresh', type=float, default=0.3, help='the threshold of nms')
     parser.add_argument('--nest-thresh', type=float, default=0.8, help='the threshold of filter nest')
     parser.add_argument('--min-size', type=int, default=24, help='the min size of object')

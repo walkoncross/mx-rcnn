@@ -161,7 +161,7 @@ def _sample_rois(all_rois, gt_boxes, fg_rois_per_image, rois_per_image, num_clas
                        (max_overlaps >= config.TRAIN.BG_THRESH_LO))[0]
     if len(bg_inds_) == 0 and key == 'TRAIN':
         bg_inds = np.where((max_overlaps < config.TRAIN.BG_THRESH_HI+0.2) &
-                       (max_overlaps >= config.TRAIN.BG_THRESH_LO))[0]
+                       (max_overlaps >= 0))[0]
     else:
         bg_inds = bg_inds_
 
