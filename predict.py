@@ -1,7 +1,5 @@
 import numpy as np
 import cv2
-import sys
-sys.path.insert(0, '/home/work/wuwei/project/dmlc/mxnet-bn/python')
 import mxnet as mx
 import argparse
 from rcnn.resnet import *

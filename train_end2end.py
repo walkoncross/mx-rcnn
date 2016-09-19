@@ -1,11 +1,7 @@
 import argparse
 import logging
 import os
-
-import sys
-sys.path.insert(0, '/home/work/wuwei/project/dmlc/mxnet/python')
 import mxnet as mx
-
 from rcnn.callback import Speedometer
 from rcnn.config import config
 from rcnn.loader import AnchorLoader

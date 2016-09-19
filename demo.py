@@ -2,11 +2,7 @@ import argparse
 import os
 import numpy as np
 import cv2
-
-# import sys
-# sys.path.insert(0, '/home/work/wuwei/project/dmlc/mxnet-bn/python')
 import mxnet as mx
-
 from helper.processing.image_processing import resize, transform
 from helper.processing.nms import nms
 from rcnn.config import config
