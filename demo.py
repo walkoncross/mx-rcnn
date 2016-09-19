@@ -3,25 +3,22 @@ import os
 import numpy as np
 import cv2
 
-import sys
-sys.path.insert(0, '/home/work/wuwei/project/dmlc/mxnet/python')
+# import sys
+# sys.path.insert(0, '/home/work/wuwei/project/dmlc/mxnet-bn/python')
 import mxnet as mx
 
 from helper.processing.image_processing import resize, transform
 from helper.processing.nms import nms
 from rcnn.config import config
 from rcnn.detector import Detector
-from rcnn.symbol import get_vgg_test, get_faster_rcnn_test
+from rcnn.symbol import get_vgg_test
 from rcnn.tester import vis_all_detection, save_all_detection
 from utils.load_model import load_param
 
 
 def get_net(prefix, epoch, ctx):
     args, auxs, num_class = load_param(prefix, epoch, convert=True, ctx=ctx)
-    if not config.END2END:
-        sym = get_vgg_test(num_classes=num_class)
-    else:
-        sym = get_faster_rcnn_test(num_classes=num_class)
+    sym = get_vgg_test(num_classes=num_class)
     detector = Detector(sym, ctx, args, auxs)
     return detector
 
@@ -42,10 +39,7 @@ def demo_net(detector, image_name, vis=False):
     :return: None
     """
 
-    # config.TRAIN.BBOX_NORMALIZATION_PRECOMPUTED = True
-    # config.TRAIN.BG_THRESH_HI = 0.5
-    # config.TRAIN.BG_THRESH_LO = 0.0
-    # config.TRAIN.RPN_MIN_SIZE = 16
+    config.TEST.HAS_RPN = True
     assert os.path.exists(image_name), image_name + ' not found'
     im = cv2.imread(image_name)
     im_array, im_scale = resize(im, config.SCALES[0], config.MAX_SIZE)
@@ -82,16 +76,11 @@ def parse_args():
     parser.add_argument('--epoch', dest='epoch', help='epoch of pretrained model', type=int)
     parser.add_argument('--gpu', dest='gpu_id', help='GPU device to test with',
                         default=0, type=int)
-    parser.add_argument('--end2end', action='store_true', default=False,
-                        help='if true, means the using end2end pretrained model')
     args = parser.parse_args()
     return args
 
 if __name__ == '__main__':
     args = parse_args()
-    if args.end2end:
-        config.END2END = 1
-        config.TEST.HAS_RPN = True
     ctx = mx.gpu(args.gpu_id)
     detector = get_net(args.prefix, args.epoch, ctx)
     demo_net(detector, args.image)

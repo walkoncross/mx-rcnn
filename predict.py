@@ -5,7 +5,7 @@ sys.path.insert(0, '/home/work/wuwei/project/dmlc/mxnet-bn/python')
 import mxnet as mx
 import argparse
 from rcnn.resnet import *
-from rcnn.symbol import get_faster_rcnn_test
+from rcnn.symbol import get_vgg_test
 from rcnn.config import config
 from helper.processing.bbox_transform import bbox_pred, clip_boxes
 from helper.processing.nms import nms, nest
@@ -53,7 +53,7 @@ def main():
     if 'resnet' in args.prefix:
         sym = resnet_50(num_class=2, bn_mom=0.99, bn_global=True, is_train=False)
     else:
-        sym = get_faster_rcnn_test(num_classes=2)
+        sym = get_vgg_test(num_classes=2)
     arg_params["data"] = mx.nd.array(img, ctx)
     arg_params["im_info"] = mx.nd.array(im_info, ctx)
 

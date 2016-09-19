@@ -21,7 +21,7 @@ def resize(im, target_size, max_size):
     return im, im_scale
 
 
-def transform(im, pixel_means, need_mean):
+def transform(im, pixel_means, need_mean=False):
     """
     transform into mxnet tensor
     substract pixel size and transform to correct format
