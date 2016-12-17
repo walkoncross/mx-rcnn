@@ -83,9 +83,11 @@ def voc_eval(detpath, annopath, imageset_file, classname, cache_dir, ovthresh=0.
     image_filenames = [x.strip() for x in lines]
 
     # load annotations from cache
+    import pdb; pdb.set_trace()
     if not os.path.isfile(cache_file):
         recs = {}
         for ind, image_filename in enumerate(image_filenames):
+            import pdb; pdb.set_trace()
             recs[image_filename] = parse_voc_rec(annopath.format(image_filename))
             if ind % 100 == 0:
                 print 'reading annotations for {:d}/{:d}'.format(ind + 1, len(image_filenames))
