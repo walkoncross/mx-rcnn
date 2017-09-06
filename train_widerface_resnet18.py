@@ -101,14 +101,20 @@ def main():
     max_data_shape, max_label_shape = get_max_shape(feat_sym)
 
     # data
+    logging.info('Load GT roidb from list')
     voc, roidb = load_gt_roidb_from_list(args.dataset_name, args.lst, args.dataset_root,
                                          args.outdata_path, flip=not args.no_flip)
     train_data = AnchorLoader(feat_sym, roidb, batch_size=config.TRAIN.IMS_PER_BATCH, anchor_scales=(4, 8, 16, 32),
                               shuffle=not args.no_shuffle, mode='train', ctx=ctx, need_mean=args.need_mean)
     # model
+    logging.info('Load model params from pretrained model: %s with epoch %04d' % (args.pretrained, args.load_epoch))
     args_params, auxs_params, _ = load_param(args.pretrained, args.load_epoch, convert=True)
     if not args.resume:
+        logging.info('Init a new model because we are not resuming a pre-training')
         args_params, auxs_params= init_model(args_params, auxs_params, train_data, sym, args.pretrained)
+    else:
+        logging.info('Resume training')
+
     data_names = [k[0] for k in train_data.provide_data]
     label_names = [k[0] for k in train_data.provide_label]
     batch_end_callback = Speedometer(train_data.batch_size, frequent=args.frequent)
@@ -132,6 +138,7 @@ def main():
     else:
         fixed_param_prefix = ['conv1', 'conv2', 'conv3']
     # train
+    logging.info('===> Start training')    
     mod = MutableModule(sym, data_names=data_names, label_names=label_names, logger=logger, context=ctx,
                         max_data_shapes=max_data_shape, max_label_shapes=max_label_shape,
                         fixed_param_prefix=fixed_param_prefix)
@@ -139,6 +146,7 @@ def main():
             batch_end_callback=batch_end_callback, kvstore=args.kv_store,
             optimizer='sgd', optimizer_params=optimizer_params, arg_params=args_params, aux_params=auxs_params,
             begin_epoch=args.load_epoch, num_epoch=args.num_epoch)
+    logging.info('===> Finished training')    
 
 
 if __name__ == '__main__':
